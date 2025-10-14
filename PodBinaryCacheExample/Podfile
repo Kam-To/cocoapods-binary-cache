@@ -33,16 +33,26 @@ target 'PodBinCacheExample' do
   pod 'Kingfisher', :binary => true
 end
 
-# AI 错误：       39 -      pod_target.native_target.build_configurations.each do |config|
-# AI 发现错误修正：⏺ 我看到了错误。pod_target 对象没有 native_target 方法。让我修正这个问题：
-
 post_install do |installer|
-  # 当使用 generate_multiple_pod_projects 时，需要遍历所有 generated projects
-  installer.generated_projects.each do |project|
+  # 兼容 generate_multiple_pod_projects 的配置
+  # 1. 尝试使用 generated_projects（多项目模式）
+  # 2. 如果为空则使用 pods_project（单项目模式）
+  projects = installer.respond_to?(:generated_projects) ? installer.generated_projects : []
+  projects = [installer.pods_project].compact if projects.empty?
+
+  projects.each do |project|
     project.targets.each do |target|
       target.build_configurations.each do |config|
         config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES' # Only work from Xcode 11
-        if Gem::Version.new('13.0') > Gem::Version.new(config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'])
+
+        # 安全检查：确保 IPHONEOS_DEPLOYMENT_TARGET 存在且不为空
+        deployment_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+        if deployment_target && !deployment_target.to_s.empty?
+          if Gem::Version.new('13.0') > Gem::Version.new(deployment_target)
+            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+          end
+        else
+          # 如果不存在，直接设置
           config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
         end
       end

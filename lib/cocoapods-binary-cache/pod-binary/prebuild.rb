@@ -142,11 +142,22 @@ module Pod
         .map { |f| f.resource_bundles.keys }
         .flatten
         .map { |name| "#{name}.bundle" }
-      metadata.build_settings = pods_project.targets
-        .detect { |native_target| native_target.name == target.name }
-        .build_configurations
-        .detect { |config| config.name == PodPrebuild.config.prebuild_config }
-        .build_settings
+
+      # 处理 generate_multiple_pod_projects 模式
+      # 在多项目模式下，需要从对应的独立项目中获取 native_target
+      project_to_use = find_project_for_target(target)
+      native_target = project_to_use.targets.detect { |nt| nt.name == target.name }
+
+      if native_target
+        metadata.build_settings = native_target
+          .build_configurations
+          .detect { |config| config.name == PodPrebuild.config.prebuild_config }
+          .build_settings
+      else
+        Pod::UI.warn "Could not find native target for #{target.name}, skipping build_settings metadata"
+        metadata.build_settings = {}
+      end
+
       metadata.source_hash = @lockfile_wrapper && @lockfile_wrapper.dev_pod_hash(target.name)
 
       # Store root path for code-coverage support later
@@ -154,6 +165,19 @@ module Pod
       project_root = PathUtils.remove_last_path_component(@sandbox.standard_sanbox_path.to_s)
       metadata.project_root = project_root
       metadata.save!
+    end
+
+    def find_project_for_target(target)
+      # 首先检查是否有独立的项目文件（多项目模式）
+      pod_name = target.name.split('-').first
+      individual_project_path = sandbox.root + "#{pod_name}.xcodeproj"
+
+      if individual_project_path.exist?
+        Xcodeproj::Project.open(individual_project_path)
+      else
+        # 回退到使用 pods_project（单项目模式）
+        pods_project
+      end
     end
 
     # patch the post install hook
