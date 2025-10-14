@@ -1,63 +1,51 @@
-platform :ios, '10.0'
+platform :ios, '13.0'
 
-def is_pod_binary_cache_enabled
-  ENV['IS_POD_BINARY_CACHE_ENABLED'] == 'true'
-end
+install! 'cocoapods',
+:generate_multiple_pod_projects => true
 
-if is_pod_binary_cache_enabled
-  plugin 'cocoapods-binary-cache'
-  config_cocoapods_binary_cache(
-    cache_repo: {
-      "default" => {
-        "remote" => "https://github.com/bigbangvn/demo-pod-binary-cache-prebuilt-libs.git",
-        "local" => "~/.cocoapods-binary-cache/PodBinaryCacheExample-libs"
-      }
-    },
-    prebuild_config: "Debug",
-    dev_pods_enabled: true
-  )
-  # set_unbuilt_dev_pods(['ConfigSDK']) // To test ABI breaking (crash, call wrong function) when there're code change in ConfigSDK and don't rebuild it's clients (ConfigService)
-end
+plugin 'cocoapods-binary-cache'
+config_cocoapods_binary_cache(
+  cache_repo: {
+    "default" => {
+      "local" => "~/.cocoapods-binary-cache/PodBinaryCacheExample-libs"
+    }
+  },
+  prebuild_config: "Release",
+  xcframework: true,
+  device_build_enabled: true,
+  build_args: {
+    :simulator => [
+      "ARCHS='x86_64 arm64'"
+    ],
+    default: ["MACH_O_TYPE=staticlib"]
+  }
+)
 
-def binary_pod(name, *args)
-  if is_pod_binary_cache_enabled
-    pod name, args, :binary => true
-  else
-    pod name, args
-  end
-end
+
+
 
 target 'PodBinCacheExample' do
   use_frameworks!
-
-  # Pods for PodBinCacheExample
-  # https://www.raywenderlich.com/259-top-10-libraries-for-ios-developers
-
-  binary_pod 'AFNetworking', '3.2.1'
-  binary_pod 'SDWebImage'
-  binary_pod 'Alamofire'
-  binary_pod 'MBProgressHUD'
-  binary_pod 'Masonry'
-  binary_pod 'SwiftyJSON'
-  binary_pod 'SVProgressHUD'
-  binary_pod 'MJRefresh'
-  binary_pod 'CocoaLumberjack'
-  binary_pod 'Realm'
-  binary_pod 'SnapKit'
-  binary_pod 'Kingfisher'
-
-  # Example of Vendor pod with external source from git
-  pod 'RxSwift', :git => 'https://github.com/ReactiveX/RxSwift.git', :commit => 'a580d07ed002217fd91d8446c3a852486e9beefa', :binary => true
-
-  # Development/Local Pods
-  pod 'ConfigService', :path => 'DevPods/ConfigService', :binary => true
-  pod 'ConfigSDK', :path => 'DevPods/ConfigSDK', :binary => true
+  
+  pod 'AFNetworking', '3.2.1', :binary => true
+  pod 'SDWebImage', :binary => true
+  pod 'SnapKit', :binary => true
+  pod 'Kingfisher', :binary => true
 end
 
+# AI 错误：       39 -      pod_target.native_target.build_configurations.each do |config|
+# AI 发现错误修正：⏺ 我看到了错误。pod_target 对象没有 native_target 方法。让我修正这个问题：
+
 post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES' # Only work from Xcode 11
+  # 当使用 generate_multiple_pod_projects 时，需要遍历所有 generated projects
+  installer.generated_projects.each do |project|
+    project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES' # Only work from Xcode 11
+        if Gem::Version.new('13.0') > Gem::Version.new(config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'])
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+        end
+      end
     end
   end
 end

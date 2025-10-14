@@ -4,18 +4,17 @@ Use of this source code is governed by an MIT-style license that can be found in
 */
 
 import UIKit
-import Alamofire
-import ConfigService
+import AFNetworking
+import SDWebImage
+import SnapKit
+import Kingfisher
 
 class ViewController: UIViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let serviceVar = ServiceVariable()
-    serviceVar.save()
-    serviceVar.reload()
-    serviceVar.reload2()
+      
   }
 }
 
