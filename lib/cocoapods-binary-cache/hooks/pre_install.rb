@@ -70,6 +70,19 @@ module PodPrebuild
     end
 
     def validate_cache
+      if PodPrebuild.config.artifact_versioning_enabled?
+        validate_cache_with_artifacts
+      else
+        validate_cache_legacy
+      end
+
+      path_to_save_cache_validation = PodPrebuild.config.save_cache_validation_to
+      @cache_validation.update_to(path_to_save_cache_validation) unless path_to_save_cache_validation.nil?
+      cache_validation.print_summary
+      PodPrebuild.state.update(:cache_validation => cache_validation)
+    end
+
+    def validate_cache_legacy
       prebuilt_lockfile = Pod::Lockfile.from_file(prebuild_sandbox.root + "Manifest.lock")
       @cache_validation = PodPrebuild::CacheValidator.new(
         podfile: podfile,
@@ -81,10 +94,17 @@ module PodPrebuild
         ignored_pods: PodPrebuild.config.excluded_pods,
         prebuilt_pod_names: PodPrebuild.config.prebuilt_pod_names
       ).validate
-      path_to_save_cache_validation = PodPrebuild.config.save_cache_validation_to
-      @cache_validation.update_to(path_to_save_cache_validation) unless path_to_save_cache_validation.nil?
-      cache_validation.print_summary
-      PodPrebuild.state.update(:cache_validation => cache_validation)
+    end
+
+    def validate_cache_with_artifacts
+      Pod::UI.puts "Using artifact-based cache validation".green
+      @cache_validation = PodPrebuild::ArtifactsCacheValidator.new(
+        pod_lockfile: installer_context.lockfile,
+        sandbox: @original_installer.sandbox,
+        validate_prebuilt_settings: PodPrebuild.config.validate_prebuilt_settings,
+        ignored_pods: PodPrebuild.config.excluded_pods,
+        prebuilt_pod_names: PodPrebuild.config.prebuilt_pod_names
+      ).validate
     end
 
     def prebuild!

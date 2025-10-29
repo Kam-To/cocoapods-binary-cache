@@ -4,7 +4,9 @@
       "Bash(xcodebuild:*)",
       "Read(//Users/cc/Documents/GitHub/cocoapods-binary-cache/**)",
       "Bash(bundle exec pod:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Read(//Users/cc/.cocoapods-binary-cache/**)",
+      "Bash(unzip:*)"
     ],
     "deny": [],
     "ask": []

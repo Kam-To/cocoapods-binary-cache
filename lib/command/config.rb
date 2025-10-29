@@ -145,6 +145,22 @@ module PodPrebuild
       @dsl_config[:silent_build]
     end
 
+    def artifact_versioning_enabled?
+      artifact_versioning_config[:enabled] == true
+    end
+
+    def artifact_versioning_config
+      @dsl_config[:artifact_versioning] || {}
+    end
+
+    def artifact_hash_factors
+      artifact_versioning_config[:hash_factors] || default_artifact_hash_factors
+    end
+
+    def local_artifact_retention
+      @dsl_config[:local_artifact_retention] || {}
+    end
+
     def targets_to_prebuild_from_cli
       @cli_config[:prebuild_targets] || []
     end
@@ -167,6 +183,16 @@ module PodPrebuild
 
     private
 
+    def default_artifact_hash_factors
+      [
+        :source,
+        :dependencies,
+        :build_settings,
+        :compiler_flags,
+        :deployment_target
+      ]
+    end
+
     def applicable_dsl_config
       [
         :cache_repo,
@@ -188,7 +214,9 @@ module PodPrebuild
         :validate_prebuilt_settings,
         :prebuild_code_gen,
         :strict_diagnosis,
-        :silent_build
+        :silent_build,
+        :artifact_versioning,
+        :local_artifact_retention
       ]
     end
 

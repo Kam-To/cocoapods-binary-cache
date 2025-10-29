@@ -7,3 +7,10 @@ require_relative "validator_dev_pods"
 require_relative "validator_dependencies_graph"
 require_relative "validator_exclusion"
 require_relative "validator"
+
+# Artifact-based versioning
+require_relative "artifact_version"
+require_relative "artifact"
+require_relative "artifact_resolver"
+require_relative "artifact_cache_manager"
+require_relative "validator_artifacts"

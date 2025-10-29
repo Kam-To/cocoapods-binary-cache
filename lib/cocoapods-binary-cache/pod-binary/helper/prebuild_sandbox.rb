@@ -17,7 +17,12 @@ module Pod
     end
 
     def generate_framework_path
-      root + "GeneratedFrameworks"
+      if PodPrebuild.config.artifact_versioning_enabled?
+        # Use current symlink directory for artifact-based versioning
+        root.parent + PodPrebuild.config.prebuild_sandbox_path + "current"
+      else
+        root + "GeneratedFrameworks"
+      end
     end
 
     # @param name [String] pass the target.name (may containing platform suffix)

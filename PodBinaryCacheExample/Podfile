@@ -18,7 +18,18 @@ config_cocoapods_binary_cache(
       "ARCHS='x86_64 arm64'"
     ],
     default: ["MACH_O_TYPE=staticlib"]
-  }
+  },
+
+  # Artifact-based versioning (optional, for better multi-branch support)
+  # Uncomment to enable:
+   artifact_versioning: {
+     enabled: true
+   },
+   local_artifact_retention: {
+     strategy: :lru,
+     max_count: 50,
+     max_size_mb: 5000
+   }
 )
 
 

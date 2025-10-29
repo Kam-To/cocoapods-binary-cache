@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bundle exec pod install:*)",
+      "Bash(bundle exec pod binary prebuild:*)",
+      "Read(//Users/cc/.cocoapods-binary-cache/PodBinaryCacheExample-libs/artifacts/**)",
+      "Bash(cat:*)",
+      "Read(//private/tmp/**)",
+      "Bash(ruby:*)",
+      "Bash(python3:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

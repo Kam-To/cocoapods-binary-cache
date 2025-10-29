@@ -116,9 +116,28 @@ module Pod
         path.rmtree if path.exist?
       else
         # only keep manifest.lock and framework folder in _Prebuild
-        to_remain_files = ["Manifest.lock", File.basename(existed_framework_folder)]
+        if PodPrebuild.config.artifact_versioning_enabled?
+          # In artifact mode, keep Manifest.lock and current directory
+          to_remain_files = ["Manifest.lock", "current"]
+          Pod::UI.puts "Cleaning _Prebuild (artifact mode), keeping: #{to_remain_files}".yellow
+        else
+          # In legacy mode, keep Manifest.lock and GeneratedFrameworks
+          to_remain_files = ["Manifest.lock", File.basename(existed_framework_folder)]
+          Pod::UI.puts "Cleaning _Prebuild (legacy mode), keeping: #{to_remain_files}".yellow
+        end
+
+        # List what's in the sandbox before cleanup
+        current_files = sandbox_path.children.map { |f| File.basename(f) }
+        Pod::UI.puts "Files in _Prebuild before cleanup: #{current_files.join(', ')}".yellow
+
         to_delete_files = sandbox_path.children.reject { |file| to_remain_files.include?(File.basename(file)) }
+        Pod::UI.puts "Files to delete: #{to_delete_files.map { |f| File.basename(f) }.join(', ')}".yellow if to_delete_files.any?
+
         to_delete_files.each { |file| file.rmtree if file.exist? }
+
+        # Verify what remains
+        remaining_files = sandbox_path.children.map { |f| File.basename(f) }
+        Pod::UI.puts "Files in _Prebuild after cleanup: #{remaining_files.join(', ')}".yellow
       end
 
       prebuild_output.write_delta_file(

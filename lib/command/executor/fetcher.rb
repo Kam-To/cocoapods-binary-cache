@@ -48,6 +48,14 @@ module PodPrebuild
     end
 
     def unzip_cache
+      if PodPrebuild.config.artifact_versioning_enabled?
+        # In artifact mode, fetching is handled by ArtifactCacheManager
+        # Just ensure the prebuild sandbox exists
+        FileUtils.mkdir_p(@config.prebuild_sandbox_path)
+        Pod::UI.puts "Using artifact-based cache (skipping legacy unzip)".green
+        return
+      end
+
       Pod::UI.puts "Unzipping cache: #{@config.cache_path} -> #{@config.prebuild_sandbox_path}".green
       FileUtils.rm_rf(@config.prebuild_sandbox_path)
       FileUtils.mkdir_p(@config.prebuild_sandbox_path)
