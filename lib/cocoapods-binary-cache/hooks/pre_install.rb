@@ -69,6 +69,33 @@ module PodPrebuild
       Pod::UI.puts "Exclude pods with empty source files: #{pods_with_empty_source_files.to_a}"
     end
 
+    # Get the effective lockfile after resolve_dependencies
+    # If there was no Podfile.lock initially, we need to generate it from analysis_result
+    def effective_lockfile
+      return @effective_lockfile if @effective_lockfile
+
+      @effective_lockfile = @original_installer.lockfile
+      unless @effective_lockfile
+        # Generate lockfile from analysis result when no Podfile.lock exists
+        if @original_installer.analysis_result
+          analysis_result = @original_installer.analysis_result
+          sandbox = @original_installer.sandbox
+
+          # Get external source pods and their checkout options
+          external_source_pods = Set.new(analysis_result.podfile_dependency_cache.podfile_dependencies.select(&:external_source).map(&:root_name))
+          checkout_options = sandbox.checkout_sources.select { |root_name, _| external_source_pods.include?(root_name) }
+
+          @effective_lockfile = Pod::Lockfile.generate(
+            @original_installer.podfile,
+            analysis_result.specifications,
+            checkout_options,
+            analysis_result.specs_by_source
+          )
+        end
+      end
+      @effective_lockfile
+    end
+
     def validate_cache
       if PodPrebuild.config.artifact_versioning_enabled?
         validate_cache_with_artifacts
@@ -99,7 +126,7 @@ module PodPrebuild
     def validate_cache_with_artifacts
       Pod::UI.puts "Using artifact-based cache validation".green
       @cache_validation = PodPrebuild::ArtifactsCacheValidator.new(
-        pod_lockfile: installer_context.lockfile,
+        pod_lockfile: effective_lockfile,
         sandbox: @original_installer.sandbox,
         validate_prebuilt_settings: PodPrebuild.config.validate_prebuilt_settings,
         ignored_pods: PodPrebuild.config.excluded_pods,
@@ -111,7 +138,7 @@ module PodPrebuild
       binary_installer = Pod::PrebuildInstaller.new(
         sandbox: prebuild_sandbox,
         podfile: podfile,
-        lockfile: installer_context.lockfile,
+        lockfile: effective_lockfile,
         cache_validation: cache_validation
       )
       binary_installer.update = @pod_install_options[:update]
