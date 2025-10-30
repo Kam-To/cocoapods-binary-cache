@@ -11,7 +11,9 @@
       "Bash(wait)",
       "Bash(git checkout:*)",
       "Bash(bundle show:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Read(//Users/cc/.cocoapods-binary-cache/PodBinaryCacheExample-libs/**)",
+      "Bash(xcodebuild:*)"
     ],
     "deny": [],
     "ask": []

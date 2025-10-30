@@ -74,19 +74,40 @@ module PodPrebuild
       artifact_dir = @local_artifacts_dir + artifact.artifact_id
       return unless artifact_dir.exist?
 
-      # In artifact mode, we link frameworks directly to current/
+      # In artifact mode, we need to create a target directory structure
+      # Expected: current/{target_name}/xxx.xcframework
       # Find all framework/xcframework files
       frameworks = Dir.glob(artifact_dir + "*.{framework,xcframework}")
 
       frameworks.each do |framework_path|
         framework_name = File.basename(framework_path)
-        link_path = @local_current_dir + framework_name
+        # Use pod name as target name (remove .xcframework/.framework extension)
+        target_name = framework_name.sub(/\.(xc)?framework$/, '')
+
+        # Create target directory: current/{target_name}/
+        target_dir = @local_current_dir + target_name
+        FileUtils.mkdir_p(target_dir)
+
+        # Link framework to current/{target_name}/xxx.xcframework
+        link_path = target_dir + framework_name
 
         # Remove existing link/directory
         FileUtils.rm_rf(link_path) if link_path.exist?
 
         # Create symlink
         FileUtils.ln_s(framework_path, link_path)
+
+        # Create .pod_name flag file so prebuild_sandbox can identify the pod
+        # Use artifact name (pod name) from the artifact object
+        pod_name_file = target_dir + "#{artifact.name}.pod_name"
+        File.write(pod_name_file, "")
+
+        # Copy metadata.json to target directory for resource handling
+        metadata_src = artifact_dir + "metadata.json"
+        metadata_dst = target_dir + "metadata.json"
+        if metadata_src.exist?
+          FileUtils.cp(metadata_src, metadata_dst)
+        end
       end
     end
 
