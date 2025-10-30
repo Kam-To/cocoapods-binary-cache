@@ -10,7 +10,8 @@
       "Bash(python3:*)",
       "Bash(wait)",
       "Bash(git checkout:*)",
-      "Bash(bundle show:*)"
+      "Bash(bundle show:*)",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": []

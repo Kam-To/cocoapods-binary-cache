@@ -50,8 +50,9 @@ module PodPrebuild
 
     def sync_cache_with_artifacts(changes)
       Pod::UI.step("Syncing artifacts cache") do
-        # Resolve artifacts for updated pods
-        lockfile = Pod::Config.instance.lockfile
+        # IMPORTANT: Use installer's lockfile, not Pod::Config.instance.lockfile
+        # The installer's lockfile is updated during the installation process
+        lockfile = installer.lockfile
         return unless lockfile
 
         resolver = PodPrebuild::ArtifactResolver.new(
