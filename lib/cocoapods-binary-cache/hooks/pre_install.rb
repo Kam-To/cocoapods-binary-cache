@@ -98,13 +98,49 @@ module PodPrebuild
 
     def validate_cache_with_artifacts
       Pod::UI.puts "Using artifact-based cache validation".green
+
+      # IMPORTANT: Use lockfile from analysis_result, not the original lockfile
+      # The original lockfile is loaded from disk before dependency resolution
+      # After resolve_dependencies, we need to use the resolved specs
+      lockfile_to_use = create_resolved_lockfile
+
       @cache_validation = PodPrebuild::ArtifactsCacheValidator.new(
-        pod_lockfile: installer_context.lockfile,
+        pod_lockfile: lockfile_to_use,
         sandbox: @original_installer.sandbox,
         validate_prebuilt_settings: PodPrebuild.config.validate_prebuilt_settings,
         ignored_pods: PodPrebuild.config.excluded_pods,
         prebuilt_pod_names: PodPrebuild.config.prebuilt_pod_names
       ).validate
+    end
+
+    # Create a lockfile-like object from resolved specifications
+    def create_resolved_lockfile
+      # Get resolved specs from analysis_result
+      resolved_specs = @original_installer.analysis_result.specifications
+
+      # Build version hash compatible with PodPrebuild::Lockfile
+      resolved_versions = {}
+      resolved_specs.each do |spec|
+        root_name = spec.name.split('/').first
+        resolved_versions[root_name] ||= spec.version.to_s
+      end
+
+      # Create a fake Pod::Lockfile that will work with PodPrebuild::Lockfile
+      FakeLockfile.new(resolved_versions)
+    end
+
+    # Minimal fake lockfile that provides the interface needed by PodPrebuild::Lockfile
+    class FakeLockfile
+      def initialize(resolved_versions)
+        @resolved_versions = resolved_versions
+      end
+
+      def to_hash
+        # Build PODS array in the format expected by Lockfile.pod_from
+        # Format: ["PodName (version)"]
+        pods_array = @resolved_versions.map { |name, version| "#{name} (#{version})" }
+        { 'PODS' => pods_array }
+      end
     end
 
     def prebuild!

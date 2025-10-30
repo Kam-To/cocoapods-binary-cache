@@ -20,6 +20,10 @@ module PodPrebuild
     # Collect all factors that influence the binary artifact
     def self.collect_build_factors(spec, build_settings)
       {
+        # 0. Version - IMPORTANT: Include version to distinguish between different versions
+        # Even if two versions have identical spec content, they should produce different artifacts
+        version: safe_spec_attr(spec, :version).to_s,
+
         # 1. Source-related
         source: normalize_source(safe_spec_attr(spec, :source)),
         source_files: safe_spec_attr(spec, :source_files),
