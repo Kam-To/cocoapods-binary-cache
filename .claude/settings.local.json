@@ -13,7 +13,10 @@
       "Bash(bundle show:*)",
       "Bash(tee:*)",
       "Read(//Users/cc/.cocoapods-binary-cache/PodBinaryCacheExample-libs/**)",
-      "Bash(xcodebuild:*)"
+      "Bash(xcodebuild:*)",
+      "Bash(bundle exec rake spec:*)",
+      "Bash(bundle exec pod binary --help:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

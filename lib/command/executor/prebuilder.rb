@@ -33,19 +33,7 @@ module PodPrebuild
     end
 
     def sync_cache(changes)
-      if PodPrebuild.config.artifact_versioning_enabled?
-        sync_cache_with_artifacts(changes)
-      else
-        sync_cache_legacy(changes)
-      end
-    end
-
-    def sync_cache_legacy(changes)
-      Pod::UI.step("Syncing cache") do
-        FileUtils.cp(@config.manifest_path, @config.manifest_path(in_cache: true))
-        clean_cache(changes["deleted"])
-        zip_to_cache(changes["updated"])
-      end
+      sync_cache_with_artifacts(changes)
     end
 
     def sync_cache_with_artifacts(changes)
@@ -110,22 +98,5 @@ module PodPrebuild
       end
     end
 
-    def zip_to_cache(pods_to_update)
-      FileUtils.mkdir_p(@config.generated_frameworks_dir(in_cache: true))
-      pods_to_update.each do |pod|
-        Pod::UI.puts "- Update cache: #{pod}"
-        ZipUtils.zip(
-          "#{@config.generated_frameworks_dir}/#{pod}",
-          to_dir: @config.generated_frameworks_dir(in_cache: true)
-        )
-      end
-    end
-
-    def clean_cache(pods_to_delete)
-      pods_to_delete.each do |pod|
-        Pod::UI.puts "- Clean up cache: #{pod}"
-        FileUtils.rm_rf("#{@config.generated_frameworks_dir(in_cache: true)}/#{pod}.zip")
-      end
-    end
   end
 end

@@ -115,16 +115,9 @@ module Pod
         path = sandbox.root + "Manifest.lock.tmp"
         path.rmtree if path.exist?
       else
-        # only keep manifest.lock and framework folder in _Prebuild
-        if PodPrebuild.config.artifact_versioning_enabled?
-          # In artifact mode, keep Manifest.lock and current directory
-          to_remain_files = ["Manifest.lock", "current"]
-          Pod::UI.puts "Cleaning _Prebuild (artifact mode), keeping: #{to_remain_files}".yellow
-        else
-          # In legacy mode, keep Manifest.lock and GeneratedFrameworks
-          to_remain_files = ["Manifest.lock", File.basename(existed_framework_folder)]
-          Pod::UI.puts "Cleaning _Prebuild (legacy mode), keeping: #{to_remain_files}".yellow
-        end
+        # In artifact mode, only keep the current directory
+        to_remain_files = ["current"]
+        Pod::UI.puts "Cleaning _Prebuild, keeping: #{to_remain_files}".yellow
 
         # List what's in the sandbox before cleanup
         current_files = sandbox_path.children.map { |f| File.basename(f) }

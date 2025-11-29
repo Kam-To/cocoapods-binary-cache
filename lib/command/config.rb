@@ -45,18 +45,6 @@ module PodPrebuild
       @dsl_config[:prebuild_delta_path] || @deprecated_config["prebuild_delta_path"] || "_Prebuild_delta/changes.json"
     end
 
-    def manifest_path(in_cache: false)
-      root_dir(in_cache) + "/Manifest.lock"
-    end
-
-    def root_dir(in_cache)
-      in_cache ? cache_path : prebuild_sandbox_path
-    end
-
-    def generated_frameworks_dir(in_cache: false)
-      root_dir(in_cache) + "/GeneratedFrameworks"
-    end
-
     def prebuilt_path(path: nil)
       p = Pathname.new(path.nil? ? "_Prebuilt" : "_Prebuilt/#{path}")
       p = p.sub_ext(".xcframework") if xcframework? && p.extname == ".framework"
@@ -145,16 +133,8 @@ module PodPrebuild
       @dsl_config[:silent_build]
     end
 
-    def artifact_versioning_enabled?
-      artifact_versioning_config[:enabled] == true
-    end
-
-    def artifact_versioning_config
-      @dsl_config[:artifact_versioning] || {}
-    end
-
     def artifact_hash_factors
-      artifact_versioning_config[:hash_factors] || default_artifact_hash_factors
+      @dsl_config[:artifact_hash_factors] || default_artifact_hash_factors
     end
 
     def local_artifact_retention
@@ -215,7 +195,7 @@ module PodPrebuild
         :prebuild_code_gen,
         :strict_diagnosis,
         :silent_build,
-        :artifact_versioning,
+        :artifact_hash_factors,
         :local_artifact_retention
       ]
     end
