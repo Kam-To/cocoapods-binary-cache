@@ -1,0 +1,19 @@
+# Git 忽略配置
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# 预编译缓存目录
+_Prebuild/
+
+# Xcode
+*.xcworkspace
+*.xcuserdata
+*.xcuserdatad
+xcuserdata/
+DerivedData/
+build/
+
+# macOS
+.DS_Store

@@ -1,0 +1,13 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+# 使用本地 gemspec 定义的依赖
+gemspec
+
+# 开发和测试工具
+group :development, :test do
+  gem "rake"
+  gem "bundler"
+  gem "pry" # 用于调试
+end
