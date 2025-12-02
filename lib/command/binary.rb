@@ -10,7 +10,6 @@
 # - fetch: 拉取预编译缓存
 # - prebuild: 预编译 binary pods
 # - push: 推送预编译缓存
-# - visualize: 可视化依赖关系
 # ========================================
 
 require "fileutils"
@@ -18,7 +17,6 @@ require_relative "config"
 require_relative "fetch"
 require_relative "prebuild"
 require_relative "push"
-require_relative "visualize"
 
 module Pod
   class Command

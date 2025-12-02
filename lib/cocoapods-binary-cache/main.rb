@@ -2,7 +2,6 @@
 # Use of this source code is governed by an MIT-style license that can be found in the LICENSE file
 
 require_relative "ui"
-require_relative "dependencies_graph/dependencies_graph"
 require_relative "cache/all"
 require_relative "helper/benchmark_show"
 require_relative "helper/json"
