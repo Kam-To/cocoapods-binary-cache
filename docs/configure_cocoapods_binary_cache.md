@@ -57,10 +57,6 @@ Note:
 - Enable `xcframework` support. This is useful when prebuilding for multi architectures (for simulators & devices).\
 NOTE: On ARM-based macs, please set this option to `true` as creating fat binaries with `lipo` no longer works on those machines.
 
-### `disable_dsym`
-- Default: `false`.
-- Disable dSYM generation when prebuilding frameworks.
-
 ### `save_cache_validation_to`
 - Default: `nil`.
 - The path to save cache validation (missed/hit). Do nothing if not specified.

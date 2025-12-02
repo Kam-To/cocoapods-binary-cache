@@ -239,14 +239,6 @@ module PodPrebuild
       @dsl_config[:xcframework]
     end
 
-    # 是否禁用 dSYM 生成
-    # @return [Boolean] true 表示不生成调试符号文件
-    #
-    # dSYM 用于崩溃分析，禁用可以减小缓存体积
-    def disable_dsym?
-      @dsl_config[:disable_dsym]
-    end
-
     # 是否保留源代码
     # @return [Boolean] true 表示不删除源码
     #
@@ -402,7 +394,6 @@ module PodPrebuild
         :dev_pods_enabled,            # 是否支持开发 pods
         :device_build_enabled,        # 是否真机编译
         :xcframework,                 # 是否使用 XCFramework
-        :disable_dsym,                # 是否禁用 dSYM
         :dont_remove_source_code,     # 是否保留源码
         :xcodebuild_log_path,         # 编译日志路径
         :build_args,                  # 自定义编译参数

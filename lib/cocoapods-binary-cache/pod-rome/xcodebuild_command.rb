@@ -65,7 +65,6 @@ module PodPrebuild
       args_[:default] ||= []
       args_[:simulator] ||= []
       args_[:device] ||= []
-      args_[:default].prepend("DEBUG_INFORMATION_FORMAT=dwarf") if disable_dsym?
       args_[:simulator].prepend("ARCHS=x86_64", "ONLY_ACTIVE_ARCH=NO") if simulator == "iphonesimulator"
       args_[:simulator] += args_[:default]
       args_[:device].prepend("ONLY_ACTIVE_ARCH=NO")
@@ -102,11 +101,8 @@ module PodPrebuild
       # to prevent duplicated file error when copying dSYMs
       sdks.each do |sdk|
         cmd << "-framework" << framework_path_of(target, sdk).shellescape
-
-        unless disable_dsym?
-          dsyms = dsym_paths_of(target, sdk)
-          cmd += dsyms.map { |dsym| "-debug-symbols #{dsym.shellescape}" }
-        end
+        dsyms = dsym_paths_of(target, sdk)
+        cmd += dsyms.map { |dsym| "-debug-symbols #{dsym.shellescape}" }
       end
 
       cmd << "-output" << output
@@ -238,10 +234,6 @@ module PodPrebuild
 
     def simulator
       @options[:simulator] || "iphonesimulator"
-    end
-
-    def disable_dsym?
-      @options[:disable_dsym]
     end
 
     def log_path(sdk)
