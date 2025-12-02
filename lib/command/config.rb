@@ -234,14 +234,6 @@ module PodPrebuild
       @dsl_config[:dev_pods_enabled]
     end
 
-    # 是否启用 Bitcode
-    # @return [Boolean] true 表示编译时包含 Bitcode
-    #
-    # 注意: Xcode 14+ 已不再支持 Bitcode
-    def bitcode_enabled?
-      @dsl_config[:bitcode_enabled]
-    end
-
     # 是否启用真机编译
     # @return [Boolean] true 表示为真机设备编译
     #
@@ -437,7 +429,6 @@ module PodPrebuild
         :prebuild_all_pods,           # 是否编译所有 pods
         :excluded_pods,               # 排除的 pods
         :dev_pods_enabled,            # 是否支持开发 pods
-        :bitcode_enabled,             # 是否启用 Bitcode
         :device_build_enabled,        # 是否真机编译
         :xcframework,                 # 是否使用 XCFramework
         :disable_dsym,                # 是否禁用 dSYM

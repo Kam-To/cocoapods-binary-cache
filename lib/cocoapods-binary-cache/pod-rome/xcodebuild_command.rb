@@ -65,7 +65,6 @@ module PodPrebuild
       args_[:default] ||= []
       args_[:simulator] ||= []
       args_[:device] ||= []
-      args_[:default].prepend("BITCODE_GENERATION_MODE=bitcode") if bitcode_enabled?
       args_[:default].prepend("DEBUG_INFORMATION_FORMAT=dwarf") if disable_dsym?
       args_[:simulator].prepend("ARCHS=x86_64", "ONLY_ACTIVE_ARCH=NO") if simulator == "iphonesimulator"
       args_[:simulator] += args_[:default]
@@ -107,11 +106,6 @@ module PodPrebuild
         unless disable_dsym?
           dsyms = dsym_paths_of(target, sdk)
           cmd += dsyms.map { |dsym| "-debug-symbols #{dsym.shellescape}" }
-        end
-
-        if bitcode_enabled?
-          bcsymbolmaps = bcsymbolmap_paths_of(target, sdk)
-          cmd += bcsymbolmaps.map { |bcsymbolmap| "-debug-symbols #{bcsymbolmap.shellescape}" }
         end
       end
 
@@ -232,10 +226,6 @@ module PodPrebuild
 
     def configuration
       @options[:configuration]
-    end
-
-    def bitcode_enabled?
-      @options[:bitcode_enabled]
     end
 
     def device_build_enabled?
