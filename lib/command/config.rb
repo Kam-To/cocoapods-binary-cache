@@ -118,20 +118,6 @@ module PodPrebuild
       @dsl_config[:prebuild_sandbox_path] || @deprecated_config["prebuild_path"] || "_Prebuild"
     end
 
-    # 预编译变更记录文件路径
-    # @return [String] 记录哪些 pods 发生了变化的 JSON 文件路径
-    #
-    # 默认值: "_Prebuild_delta/changes.json"
-    # 文件内容示例:
-    # {
-    #   "updated": ["AFNetworking", "Alamofire"],
-    #   "added": ["RxSwift"],
-    #   "deleted": ["OldPod"]
-    # }
-    def prebuild_delta_path
-      @dsl_config[:prebuild_delta_path] || @deprecated_config["prebuild_delta_path"] || "_Prebuild_delta/changes.json"
-    end
-
     # 获取预编译产物的最终存放路径
     # @param path [String, nil] 可选的子路径
     # @return [String] 预编译框架的存放路径
@@ -409,7 +395,6 @@ module PodPrebuild
       [
         :cache_repo,                  # 缓存仓库配置
         :prebuild_sandbox_path,       # 预编译沙盒路径
-        :prebuild_delta_path,         # 变更记录文件路径
         :prebuild_config,             # 编译配置
         :prebuild_job,                # 是否为预编译任务（内部使用）
         :prebuild_all_pods,           # 是否编译所有 pods

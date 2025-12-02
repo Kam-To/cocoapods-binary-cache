@@ -1,5 +1,4 @@
 require "fileutils"
-require_relative "../prebuild_output/output"
 require_relative "../helper/lockfile"
 require_relative "helper/target_checker"
 require_relative "helper/build"
@@ -27,10 +26,6 @@ module Pod
       Pod::UI.title("Running code generation...") do
         PodPrebuild.config.prebuild_code_gen.call(self, targets)
       end
-    end
-
-    def prebuild_output
-      @prebuild_output ||= PodPrebuild::Output.new(sandbox)
     end
 
     def targets_to_prebuild
@@ -129,14 +124,6 @@ module Pod
         Pod::UI.puts "Files in _Prebuild after cleanup: #{remaining_files.join(', ')}".yellow
       end
 
-      prebuild_output.write_delta_file(
-        updated: targets.map { |target| target.label.to_s },
-        deleted: useless_target_names
-      )
-    end
-
-    def clean_delta_file
-      prebuild_output.clean_delta_file
     end
 
     def collect_metadata(target, output_path)

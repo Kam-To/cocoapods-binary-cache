@@ -136,7 +136,6 @@ module PodPrebuild
       binary_installer.repo_update = @pod_install_options[:repo_update]
 
       Pod::UI.title("Prebuilding...") do
-        binary_installer.clean_delta_file
         binary_installer.install!
       end
     end

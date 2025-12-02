@@ -1,3 +1,18 @@
+# ========================================
+# 文件说明: Prebuild 命令执行器
+# ========================================
+# 这个执行器负责协调预编译的完整流程：
+# 1. Fetch: 拉取远程缓存
+# 2. Prebuild: 执行预编译
+# 3. Publish: 发布新编译的 artifacts
+# 4. Push: 推送到远程缓存仓库
+#
+# 设计理念：
+# - 不依赖 delta 文件跟踪变化
+# - 直接发布 _Prebuild/current/ 中的所有 pods
+# - 由 Git 自动识别文件变化（增量提交）
+# ========================================
+
 require_relative "base"
 require_relative "fetcher"
 require_relative "pusher"
@@ -6,6 +21,13 @@ module PodPrebuild
   class CachePrebuilder < CommandExecutor
     attr_reader :repo_update, :fetcher, :pusher
 
+    # 初始化预编译执行器
+    # @param options [Hash] 配置选项
+    #   - config: PodPrebuild::Config 配置对象
+    #   - cache_branch: 缓存分支名称
+    #   - repo_update: 是否更新 pod repo
+    #   - no_fetch: 是否跳过 fetch
+    #   - push_cache: 是否推送缓存
     def initialize(options)
       super(options)
       @repo_update = options[:repo_update]
@@ -13,18 +35,19 @@ module PodPrebuild
       @pusher = PodPrebuild::CachePusher.new(options) if options[:push_cache]
     end
 
+    # 执行预编译流程
+    # 流程：fetch → prebuild → publish_artifacts → push
     def run
-      @fetcher&.run
-      prebuild
-      changes = PodPrebuild::JSONFile.new(@config.prebuild_delta_path)
-      return if changes.empty?
-
-      sync_cache(changes)
-      @pusher&.run
+      @fetcher&.run   # 拉取远程缓存（如果启用）
+      prebuild        # 执行预编译
+      publish_artifacts  # 发布新编译的 artifacts
+      @pusher&.run    # 推送到远程缓存（如果启用）
     end
 
     private
 
+    # 执行预编译
+    # 调用 CocoaPods 的安装流程
     def prebuild
       Pod::UI.step("Installation") do
         installer.repo_update = @repo_update
@@ -32,14 +55,15 @@ module PodPrebuild
       end
     end
 
-    def sync_cache(changes)
-      sync_cache_with_artifacts(changes)
-    end
-
-    def sync_cache_with_artifacts(changes)
-      Pod::UI.step("Syncing artifacts cache") do
-        # IMPORTANT: Use installer's lockfile, not Pod::Config.instance.lockfile
-        # The installer's lockfile is updated during the installation process
+    # 发布 artifacts 到缓存
+    # 只发布 _Prebuild/current/ 中存在的 pods（即本次编译的 pods）
+    #
+    # 工作原理：
+    # - Cache hit 的 pods 不会出现在 current/ 中
+    # - 只有 cache miss 的 pods 才会被重新编译并放入 current/
+    # - 因此遍历 current/ 目录即可实现增量发布
+    def publish_artifacts
+      Pod::UI.step("Publishing artifacts") do
         lockfile = installer.lockfile
         return unless lockfile
 
@@ -50,53 +74,49 @@ module PodPrebuild
         )
 
         cache_manager = PodPrebuild::ArtifactCacheManager.new(@config)
+        current_dir = Pathname(@config.prebuild_sandbox_path) + "current"
 
-        changes["updated"].each do |pod_name|
-          Pod::UI.puts "Publishing artifact for: #{pod_name}".green
+        # 检查 current 目录是否存在
+        unless current_dir.exist?
+          Pod::UI.puts "No artifacts to publish (current directory does not exist)".yellow
+          return
+        end
 
-          # Resolve artifact for this pod
+        # 遍历 current/ 中的所有 pod 目录
+        published_count = 0
+        current_dir.children.select(&:directory?).each do |pod_dir|
+          pod_name = pod_dir.basename.to_s
+
+          # 解析 artifact
           artifact = resolver.resolve_artifact(pod_name)
           unless artifact
             Pod::UI.warn "Failed to resolve artifact for #{pod_name}"
             next
           end
 
-          # In artifact mode, frameworks are in _Prebuild/current/PodName/
-          # Structure: _Prebuild/current/PodName/PodName.xcframework
-          framework_dir = Pathname(@config.prebuild_sandbox_path) + "current" + pod_name
-
-          Pod::UI.puts "  Looking for framework in: #{framework_dir}".blue if @config.strict_diagnosis?
-
-          unless framework_dir.exist?
-            Pod::UI.warn "Framework directory not found for #{pod_name} at #{framework_dir}"
-            Pod::UI.warn "Available directories in _Prebuild/current: #{(Pathname(@config.prebuild_sandbox_path) + 'current').children.map(&:basename).join(', ')}" rescue nil
-            next
-          end
-
-          # Find actual framework/xcframework file in the pod directory
-          framework_file = Dir.glob(framework_dir + "*.{framework,xcframework}").first
-
+          # 查找 framework/xcframework 文件
+          framework_file = Dir.glob(pod_dir + "*.{framework,xcframework}").first
           unless framework_file
-            Pod::UI.warn "Framework file not found for #{pod_name} in #{framework_dir}"
-            Pod::UI.warn "Directory contents: #{Dir.glob(framework_dir + '*').map { |f| File.basename(f) }.join(', ')}"
+            Pod::UI.warn "Framework file not found for #{pod_name} in #{pod_dir}"
             next
           end
 
-          Pod::UI.puts "  Found framework: #{framework_file}".blue if @config.strict_diagnosis?
-
-          # Publish artifact
+          # 发布 artifact
           begin
+            Pod::UI.puts "Publishing artifact: #{pod_name}".green
             cache_manager.publish_artifact(artifact, framework_file)
+            published_count += 1
           rescue => e
             Pod::UI.warn "Failed to publish artifact for #{pod_name}: #{e.message}"
             Pod::UI.warn e.backtrace.join("\n") if @config.strict_diagnosis?
           end
         end
 
-        # Clean up old artifacts based on retention policy
+        Pod::UI.puts "Published #{published_count} artifact(s)".green
+
+        # 清理旧的 artifacts（根据保留策略）
         cache_manager.cleanup_old_artifacts(@config.local_artifact_retention)
       end
     end
-
   end
 end
