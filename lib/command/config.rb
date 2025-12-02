@@ -5,10 +5,13 @@
 #
 # 配置系统设计：
 # 1. 单例模式：全局只有一个 Config 实例
-# 2. 三层配置优先级：
-#    - cli_config (最高): 命令行参数 (如 --repo)
-#    - dsl_config (中等): Podfile 中的 config_cocoapods_binary_cache
-#    - deprecated_config (最低): 旧版 PodBinaryCacheConfig.json (已弃用)
+# 2. 两层配置优先级：
+#    - dsl_config (高): Podfile 中的 config_cocoapods_binary_cache
+#    - deprecated_config (低): 旧版 PodBinaryCacheConfig.json (已弃用)
+#
+# 设计理念：
+# - 所有配置都在 Podfile 中定义，保证配置的一致性和可追溯性
+# - 不支持命令行参数覆盖配置
 #
 # 核心配置项：
 # - cache_repo: 缓存仓库配置（本地路径和远程地址）
@@ -37,21 +40,17 @@ module PodPrebuild
     # 配置存储
     # @!attribute [rw] dsl_config
     #   @return [Hash] 来自 Podfile 中 config_cocoapods_binary_cache 的配置
-    # @!attribute [rw] cli_config
-    #   @return [Hash] 来自命令行参数的配置
-    attr_accessor :dsl_config, :cli_config
+    attr_accessor :dsl_config
 
     # 初始化配置对象
     # @param path [String] 旧版配置文件路径（已弃用，但为了向后兼容仍然支持）
     #
-    # 初始化三层配置：
+    # 初始化两层配置：
     # - deprecated_config: 从 JSON 文件读取（如果存在）
     # - dsl_config: 空 Hash，稍后由 Podfile 填充
-    # - cli_config: 空 Hash，稍后由命令行参数填充
     def initialize(path)
       @deprecated_config = File.exist?(path) ? PodPrebuild::JSONFile.new(path).data : {}
       @dsl_config = {}
-      @cli_config = {}
       @detected_config = {}
     end
 
@@ -66,11 +65,10 @@ module PodPrebuild
     end
 
     # 重置所有配置（主要用于测试）
-    # 清空所有三层配置，恢复初始状态
+    # 清空所有配置，恢复初始状态
     def reset!
       @deprecated_config = {}
       @dsl_config = {}
-      @cli_config = {}
     end
 
     # ========================================
@@ -180,14 +178,13 @@ module PodPrebuild
     # 获取预编译配置（Debug/Release/Custom）
     # @return [String] 编译配置名称
     #
-    # 优先级: CLI > DSL > 默认值("Debug")
+    # 默认值: "Debug"
     # 这决定了使用哪个 build configuration 来预编译
     #
     # 示例:
-    #   pod binary prebuild --config Release  # => "Release"
-    #   config_cocoapods_binary_cache(prebuild_config: "Debug")  # => "Debug"
+    #   config_cocoapods_binary_cache(prebuild_config: "Release")  # => "Release"
     def prebuild_config
-      @cli_config[:prebuild_config] || @dsl_config[:prebuild_config] || "Debug"
+      @dsl_config[:prebuild_config] || "Debug"
     end
 
     # 是否处于预编译任务中
@@ -197,17 +194,20 @@ module PodPrebuild
     # - prebuild 任务: 需要编译框架
     # - 普通 install 任务: 只需要使用缓存
     def prebuild_job?
-      @cli_config[:prebuild_job] || @dsl_config[:prebuild_job]
+      @dsl_config[:prebuild_job]
     end
 
     # 是否预编译所有 binary pods（忽略缓存验证）
     # @return [Boolean] true 表示强制重新编译所有 pods
     #
     # 使用场景:
-    # - pod binary prebuild --all  # 强制重新编译
     # - 缓存损坏时重建所有缓存
+    # - 强制更新所有预编译产物
+    #
+    # 在 Podfile 中配置:
+    #   config_cocoapods_binary_cache(prebuild_all_pods: true)
     def prebuild_all_pods?
-      @cli_config[:prebuild_all_pods] || @dsl_config[:prebuild_all_pods]
+      @dsl_config[:prebuild_all_pods]
     end
 
     # 获取排除的 pods 列表
@@ -354,20 +354,6 @@ module PodPrebuild
     end
 
     # ========================================
-    # 命令行目标配置
-    # ========================================
-
-    # 从命令行获取要预编译的目标列表
-    # @return [Array<String>] 目标名称数组
-    #
-    # 使用示例:
-    #   pod binary prebuild --targets=MyApp,MyAppTests
-    #   => ["MyApp", "MyAppTests"]
-    def targets_to_prebuild_from_cli
-      @cli_config[:prebuild_targets] || []
-    end
-
-    # ========================================
     # 运行时检测配置（由插件自动更新）
     # ========================================
 
@@ -425,7 +411,7 @@ module PodPrebuild
         :prebuild_sandbox_path,       # 预编译沙盒路径
         :prebuild_delta_path,         # 变更记录文件路径
         :prebuild_config,             # 编译配置
-        :prebuild_job,                # 是否为预编译任务
+        :prebuild_job,                # 是否为预编译任务（内部使用）
         :prebuild_all_pods,           # 是否编译所有 pods
         :excluded_pods,               # 排除的 pods
         :dev_pods_enabled,            # 是否支持开发 pods
@@ -448,25 +434,23 @@ module PodPrebuild
     # 获取缓存仓库配置
     # @return [Hash] 包含 "remote" 和 "local" 的配置
     #
-    # 这个方法处理多仓库配置和向后兼容:
-    # 1. 支持多个缓存仓库（通过 --repo 选择）
-    # 2. 向后兼容旧版 PodBinaryCacheConfig.json
+    # 这个方法处理向后兼容:
+    # - 新版配置: 在 Podfile 中使用 cache_repo
+    # - 旧版配置: 从 PodBinaryCacheConfig.json 读取
     #
-    # 配置示例:
-    # cache_repo: {
-    #   "default" => {
-    #     "remote" => "git@github.com:org/cache.git",
-    #     "local" => "~/.cocoapods-binary-cache/prebuilt-frameworks"
-    #   },
-    #   "staging" => {
-    #     "remote" => "git@github.com:org/cache-staging.git",
-    #     "local" => "~/.cocoapods-binary-cache/staging"
+    # 配置示例（在 Podfile 中）:
+    # config_cocoapods_binary_cache(
+    #   cache_repo: {
+    #     "default" => {
+    #       "remote" => "git@github.com:org/cache.git",
+    #       "local" => "~/.cocoapods-binary-cache/prebuilt-frameworks"
+    #     }
     #   }
-    # }
+    # )
     def cache_repo_config
       @cache_repo_config ||= begin
-        # 确定使用哪个仓库配置（默认为 "default"）
-        repo = @cli_config[:repo] || "default"
+        # 使用 "default" 作为默认仓库配置
+        repo = "default"
         config_ = @dsl_config[:cache_repo] || {}
 
         # 如果找不到对应的仓库配置，尝试使用旧版配置

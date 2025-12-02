@@ -34,10 +34,7 @@ module Pod
     end
 
     def targets_to_prebuild
-      to_build = PodPrebuild.config.targets_to_prebuild_from_cli
-      if to_build.empty?
-        to_build = PodPrebuild.config.prebuild_all_pods? ? @cache_validation.all : @cache_validation.missed
-      end
+      to_build = PodPrebuild.config.prebuild_all_pods? ? @cache_validation.all : @cache_validation.missed
       pod_targets.select { |target| to_build.include?(target.name) }
     end
 

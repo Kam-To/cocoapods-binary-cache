@@ -58,16 +58,6 @@ describe "Pod::Installer" do
       it "installs source of all prebuilt pods differently" do
         expect_installed_as_prebuilt(prebuilt_pod_names)
       end
-
-      context "targets were specified in CLI" do
-        let(:targets_to_prebuild_from_cli) { ["Y"] }
-        before do
-          allow(PodPrebuild.config).to receive(:targets_to_prebuild_from_cli).and_return(targets_to_prebuild_from_cli)
-        end
-        it "installs specified targets & cache hit as prebuilt" do
-          expect_installed_as_prebuilt(prebuilt_pod_names_cache_hit + targets_to_prebuild_from_cli)
-        end
-      end
     end
   end
 end
