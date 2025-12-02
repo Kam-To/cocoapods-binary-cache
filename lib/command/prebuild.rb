@@ -4,10 +4,7 @@
 # 这个命令负责预编译标记为 :binary => true 的 pods
 #
 # 使用方式:
-#   pod binary prebuild [CACHE-BRANCH]
-#
-# 参数说明:
-#   CACHE-BRANCH: 可选，指定缓存分支，默认为 "master"
+#   pod binary prebuild
 #
 # 所有编译行为配置都在 Podfile 中定义，包括:
 #   - prebuild_config: 编译配置（Debug/Release）
@@ -24,16 +21,11 @@ module Pod
       class Prebuild < Binary
         attr_reader :prebuilder
 
-        # 定义位置参数：缓存分支（可选）
-        self.arguments = [CLAide::Argument.new("CACHE-BRANCH", false)]
-
         # 定义命令行选项
         # 这些是运行时标志，不是配置项
         def self.options
           [
-            ["--repo-update", "Update pod repo before installing"],
-            ["--no-fetch", "Do not perform a cache fetch beforehand"],
-            ["--push", "Push cache to repo upon completion"]
+            ["--repo-update", "Update pod repo before installing"]
           ]
         end
 
@@ -54,10 +46,7 @@ module Pod
           # 创建 prebuilder 执行器
           @prebuilder = PodPrebuild::CachePrebuilder.new(
             config: prebuild_config,
-            cache_branch: argv.shift_argument || "master",  # 获取缓存分支参数
-            repo_update: argv.flag?("repo-update"),         # 是否更新 pod repo
-            no_fetch: argv.flag?("fetch") == false,         # 是否跳过 fetch
-            push_cache: argv.flag?("push")                  # 是否在完成后 push
+            repo_update: argv.flag?("repo-update")  # 是否更新 pod repo
           )
         end
 

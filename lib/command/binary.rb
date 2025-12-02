@@ -10,16 +10,13 @@
 # - 不支持命令行参数覆盖配置（保持配置的一致性和可追溯性）
 #
 # 子命令包括：
-# - fetch: 拉取预编译缓存
+# - config: 查看当前配置
 # - prebuild: 预编译 binary pods
-# - push: 推送预编译缓存
 # ========================================
 
 require "fileutils"
 require_relative "config"
-require_relative "fetch"
 require_relative "prebuild"
-require_relative "push"
 
 module Pod
   class Command
@@ -45,9 +42,9 @@ module Pod
       # @return [PodPrebuild::Config] 全局配置单例
       #
       # 这个配置对象包含了所有插件相关的配置：
-      # - cache_repo: 缓存仓库地址
       # - prebuild_config: 编译配置（Debug/Release）
       # - excluded_pods: 排除的 pods
+      # - artifact_cache_dir: 本地 artifact 缓存目录
       # 等等...
       def prebuild_config
         @prebuild_config ||= PodPrebuild.config

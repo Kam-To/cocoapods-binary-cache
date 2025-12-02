@@ -2,46 +2,36 @@
 # 文件说明: Prebuild 命令执行器
 # ========================================
 # 这个执行器负责协调预编译的完整流程：
-# 1. Fetch: 拉取远程缓存
-# 2. Prebuild: 执行预编译
-# 3. Publish: 发布新编译的 artifacts
-# 4. Push: 推送到远程缓存仓库
+# 1. Prebuild: 执行预编译
+# 2. Publish: 发布新编译的 artifacts 到本地缓存
 #
-# 设计理念：
+# 设计理念（分布式本地缓存）：
 # - 不依赖 delta 文件跟踪变化
 # - 直接发布 _Prebuild/current/ 中的所有 pods
-# - 由 Git 自动识别文件变化（增量提交）
+# - 每个开发者维护独立的本地 artifact 缓存
+# - 通过 artifact hash 确保唯一性和可复现性
 # ========================================
 
 require_relative "base"
-require_relative "fetcher"
-require_relative "pusher"
 
 module PodPrebuild
   class CachePrebuilder < CommandExecutor
-    attr_reader :repo_update, :fetcher, :pusher
+    attr_reader :repo_update
 
     # 初始化预编译执行器
     # @param options [Hash] 配置选项
     #   - config: PodPrebuild::Config 配置对象
-    #   - cache_branch: 缓存分支名称
     #   - repo_update: 是否更新 pod repo
-    #   - no_fetch: 是否跳过 fetch
-    #   - push_cache: 是否推送缓存
     def initialize(options)
       super(options)
       @repo_update = options[:repo_update]
-      @fetcher = PodPrebuild::CacheFetcher.new(options) unless options[:no_fetch]
-      @pusher = PodPrebuild::CachePusher.new(options) if options[:push_cache]
     end
 
     # 执行预编译流程
-    # 流程：fetch → prebuild → publish_artifacts → push
+    # 流程：prebuild → publish_artifacts
     def run
-      @fetcher&.run   # 拉取远程缓存（如果启用）
       prebuild        # 执行预编译
-      publish_artifacts  # 发布新编译的 artifacts
-      @pusher&.run    # 推送到远程缓存（如果启用）
+      publish_artifacts  # 发布新编译的 artifacts 到本地缓存
     end
 
     private
