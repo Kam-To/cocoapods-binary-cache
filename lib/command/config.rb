@@ -7,7 +7,6 @@
 # 1. 单例模式：全局只有一个 Config 实例
 # 2. 两层配置优先级：
 #    - dsl_config (高): Podfile 中的 config_cocoapods_binary_cache
-#    - deprecated_config (低): 旧版 PodBinaryCacheConfig.json (已弃用)
 #
 # 设计理念：
 # - 所有配置都在 Podfile 中定义，保证配置的一致性和可追溯性
@@ -43,13 +42,11 @@ module PodPrebuild
     attr_accessor :dsl_config
 
     # 初始化配置对象
-    # @param path [String] 旧版配置文件路径（已弃用，但为了向后兼容仍然支持）
+    # @param path [String]
     #
     # 初始化两层配置：
-    # - deprecated_config: 从 JSON 文件读取（如果存在）
     # - dsl_config: 空 Hash，稍后由 Podfile 填充
     def initialize(path)
-      @deprecated_config = File.exist?(path) ? PodPrebuild::JSONFile.new(path).data : {}
       @dsl_config = {}
       @detected_config = {}
     end
@@ -67,7 +64,6 @@ module PodPrebuild
     # 重置所有配置（主要用于测试）
     # 清空所有配置，恢复初始状态
     def reset!
-      @deprecated_config = {}
       @dsl_config = {}
     end
 
@@ -115,7 +111,7 @@ module PodPrebuild
     #   │       └── AFNetworking.xcframework -> ../../artifacts/...
     #   └── Pods/             # 预编译时的临时 Pods 目录
     def prebuild_sandbox_path
-      @dsl_config[:prebuild_sandbox_path] || @deprecated_config["prebuild_path"] || "_Prebuild"
+      @dsl_config[:prebuild_sandbox_path] || "_Prebuild"
     end
 
     # 获取预编译产物的最终存放路径
@@ -408,17 +404,15 @@ module PodPrebuild
     end
 
     # 获取缓存仓库配置
-    # @return [Hash] 包含 "remote" 和 "local" 的配置
+    # @return [Hash] 包含 "local" 的配置
     #
     # 这个方法处理向后兼容:
     # - 新版配置: 在 Podfile 中使用 cache_repo
-    # - 旧版配置: 从 PodBinaryCacheConfig.json 读取
     #
     # 配置示例（在 Podfile 中）:
     # config_cocoapods_binary_cache(
     #   cache_repo: {
     #     "default" => {
-    #       "remote" => "git@github.com:org/cache.git",
     #       "local" => "~/.cocoapods-binary-cache/prebuilt-frameworks"
     #     }
     #   }
@@ -428,21 +422,8 @@ module PodPrebuild
         # 使用 "default" 作为默认仓库配置
         repo = "default"
         config_ = @dsl_config[:cache_repo] || {}
-
-        # 如果找不到对应的仓库配置，尝试使用旧版配置
-        if config_[repo].nil?
-          message = <<~HEREDOC
-            [Deprecated] Configs in `PodBinaryCacheConfig.json` are deprecated.
-            Declare option `cache_repo` in `config_cocoapods_binary_cache` instead.
-            Check out the following doc for more details
-              https://github.com/grab/cocoapods-binary-cache/blob/master/docs/configure_cocoapods_binary_cache.md
-          HEREDOC
-          Pod::UI.puts message.yellow
-        end
-
-        # 返回配置，优先使用新版配置，回退到旧版配置
+        # 返回配置
         config_[repo] || {
-          "remote" => @deprecated_config["cache_repo"] || @deprecated_config["prebuilt_cache_repo"],
           "local" => @deprecated_config["cache_path"] || "~/.cocoapods-binary-cache/prebuilt-frameworks"
         }
       end

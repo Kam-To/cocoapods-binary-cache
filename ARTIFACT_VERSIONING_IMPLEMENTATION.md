@@ -154,7 +154,6 @@ cache-repo/
 config_cocoapods_binary_cache(
   cache_repo: {
     "default" => {
-      "remote" => "git@github.com:your-org/cache.git",
       "local" => "~/.cocoapods-binary-cache"
     }
   },

@@ -33,7 +33,6 @@ plugin 'cocoapods-binary-cache'
 config_cocoapods_binary_cache(
   cache_repo: {
     "default" => {
-      "remote" => "git@github.com:your-org/binary-cache.git",
       "local" => "~/.cocoapods-binary-cache"
     }
   },
@@ -56,7 +55,6 @@ end
 config_cocoapods_binary_cache(
   cache_repo: {
     "default" => {
-      "remote" => "git@github.com:your-org/binary-cache.git",
       "local" => "~/.cocoapods-binary-cache"
     }
   },

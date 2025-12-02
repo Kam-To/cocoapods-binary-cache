@@ -57,7 +57,6 @@ plugin "cocoapods-binary-cache"
 config_cocoapods_binary_cache(
   cache_repo: {
     "default" => {
-      "remote" => "git@cache_repo.git",
       "local" => "~/.cocoapods-binary-cache/prebuilt-frameworks"
     }
   },
