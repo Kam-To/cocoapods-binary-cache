@@ -5,21 +5,18 @@
 #
 # 配置系统设计：
 # 1. 单例模式：全局只有一个 Config 实例
-# 2. 两层配置优先级：
-#    - dsl_config (高): Podfile 中的 config_cocoapods_binary_cache
+# 2. 配置 dsl_config: Podfile 中的 config_cocoapods_binary_cache
 #
 # 设计理念：
 # - 所有配置都在 Podfile 中定义，保证配置的一致性和可追溯性
 # - 不支持命令行参数覆盖配置
 #
 # 核心配置项：
-# - cache_repo: 缓存仓库配置（本地路径和远程地址）
+# - cache_path: 本地缓存路径
 # - prebuild_config: 编译配置（Debug/Release）
 # - excluded_pods: 不进行预编译的 pods
 # - xcframework: 是否使用 xcframework 格式
 # ========================================
-
-require_relative "../cocoapods-binary-cache/helper/json"
 
 module PodPrebuild
   # 便捷访问全局配置实例的方法
@@ -35,18 +32,15 @@ module PodPrebuild
   # 2. 提供便捷的配置访问方法
   # 3. 验证配置的有效性
   # 4. 提供配置默认值
-  class Config # rubocop:disable Metrics/ClassLength
+  class Config
     # 配置存储
     # @!attribute [rw] dsl_config
     #   @return [Hash] 来自 Podfile 中 config_cocoapods_binary_cache 的配置
     attr_accessor :dsl_config
 
     # 初始化配置对象
-    # @param path [String]
-    #
-    # 初始化两层配置：
     # - dsl_config: 空 Hash，稍后由 Podfile 填充
-    def initialize(path)
+    def initialize
       @dsl_config = {}
       @detected_config = {}
     end
@@ -58,7 +52,7 @@ module PodPrebuild
     # - 第一次调用时创建实例
     # - 后续调用返回同一个实例
     def self.instance
-      @instance ||= new("PodBinaryCacheConfig.json")
+      @instance ||= new()
     end
 
     # 重置所有配置（主要用于测试）
@@ -68,32 +62,16 @@ module PodPrebuild
     end
 
     # ========================================
-    # 缓存仓库配置相关方法
+    # 本地缓存路径配置
     # ========================================
-
-    # 获取远程缓存仓库地址
-    # @return [String, nil] Git 仓库地址，如果为 nil 则使用本地缓存
-    #
-    # 例如: "git@github.com:your-org/binary-cache.git"
-    def cache_repo
-      @cache_repo ||= cache_repo_config["remote"]
-    end
-
-    # 是否使用本地缓存（而非远程 Git 仓库）
-    # @return [Boolean] true 表示只使用本地缓存
-    def local_cache?
-      cache_repo.nil?
-    end
 
     # 获取本地缓存路径
     # @return [String] 本地缓存目录的绝对路径
     #
     # 默认值: "~/.cocoapods-binary-cache/prebuilt-frameworks"
-    # 这个目录用于：
-    # 1. 存储从远程拉取的缓存
-    # 2. 或直接作为本地缓存存储（如果没有配置远程仓库）
+    # 这个目录用于存储本地缓存
     def cache_path
-      @cache_path ||= File.expand_path(cache_repo_config["local"])
+      @cache_path ||= File.expand_path(@dsl_config[:cache_path] || "~/.cocoapods-binary-cache/prebuilt-frameworks")
     end
 
     # ========================================
@@ -381,7 +359,7 @@ module PodPrebuild
     # 这个列表用于验证用户配置的有效性
     def applicable_dsl_config
       [
-        :cache_repo,                  # 缓存仓库配置
+        :cache_path,                  # 本地缓存路径
         :prebuild_sandbox_path,       # 预编译沙盒路径
         :prebuild_config,             # 编译配置
         :prebuild_job,                # 是否为预编译任务（内部使用）
@@ -401,32 +379,6 @@ module PodPrebuild
         :artifact_hash_factors,       # Artifact 哈希因素
         :local_artifact_retention     # 本地缓存保留策略
       ]
-    end
-
-    # 获取缓存仓库配置
-    # @return [Hash] 包含 "local" 的配置
-    #
-    # 这个方法处理向后兼容:
-    # - 新版配置: 在 Podfile 中使用 cache_repo
-    #
-    # 配置示例（在 Podfile 中）:
-    # config_cocoapods_binary_cache(
-    #   cache_repo: {
-    #     "default" => {
-    #       "local" => "~/.cocoapods-binary-cache/prebuilt-frameworks"
-    #     }
-    #   }
-    # )
-    def cache_repo_config
-      @cache_repo_config ||= begin
-        # 使用 "default" 作为默认仓库配置
-        repo = "default"
-        config_ = @dsl_config[:cache_repo] || {}
-        # 返回配置
-        config_[repo] || {
-          "local" => @deprecated_config["cache_path"] || "~/.cocoapods-binary-cache/prebuilt-frameworks"
-        }
-      end
     end
   end
 end
