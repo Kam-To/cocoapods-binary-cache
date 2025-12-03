@@ -4,23 +4,24 @@ require_relative "../helper/json"
 require_relative "../../command/helper/zip"
 
 module PodPrebuild
-  # Manages binary artifact cache (local only)
+  # Manages binary artifact cache (local and remote)
   class ArtifactCacheManager
-    attr_reader :config, :local_artifacts_dir, :local_current_dir
+    attr_reader :config, :local_artifacts_dir, :local_current_dir, :remote_artifacts_dir
 
     def initialize(config)
       @config = config
       @local_artifacts_dir = Pathname(config.cache_path) + "artifacts"
       @local_current_dir = Pathname(config.prebuild_sandbox_path) + "current"
+      @remote_artifacts_dir = config.local_cache? ? @local_artifacts_dir : Pathname(config.cache_path) + "artifacts"
     end
 
-    # Check if artifact exists locally
+    # Check if artifact exists (local or remote)
     def artifact_available?(artifact)
-      local_available?(artifact)
+      local_available?(artifact) || remote_available?(artifact)
     end
 
-    # Fetch artifact from local cache
-    # Returns: :local_hit or :miss
+    # Fetch artifact (local first, then remote)
+    # Returns: :local_hit, :remote_hit, or :miss
     def fetch_artifact(artifact)
       if local_available?(artifact)
         Pod::UI.puts "  - [Local Hit] #{artifact.artifact_id}".green
@@ -28,11 +29,18 @@ module PodPrebuild
         return :local_hit
       end
 
+      if remote_available?(artifact)
+        Pod::UI.puts "  - [Remote Hit] #{artifact.artifact_id}".yellow
+        download_artifact(artifact)
+        link_to_current(artifact)
+        return :remote_hit
+      end
+
       Pod::UI.puts "  - [Miss] #{artifact.artifact_id}".red
       :miss
     end
 
-    # Publish artifact to local cache
+    # Publish artifact to remote cache
     def publish_artifact(artifact, framework_path)
       artifact_dir = @local_artifacts_dir + artifact.artifact_id
       FileUtils.mkdir_p(artifact_dir)
@@ -45,6 +53,15 @@ module PodPrebuild
       metadata = artifact.generate_metadata
       metadata_file = artifact_dir + "metadata.json"
       File.write(metadata_file, JSON.pretty_generate(metadata))
+
+      # 3. Zip artifact for remote storage (if using remote cache)
+      unless config.local_cache?
+        FileUtils.mkdir_p(@remote_artifacts_dir)
+        zip_artifact(artifact_dir, @remote_artifacts_dir + artifact.zip_name)
+
+        # 4. Copy metadata to remote
+        FileUtils.cp(metadata_file, @remote_artifacts_dir + artifact.metadata_name)
+      end
 
       Pod::UI.puts "  - [Published] #{artifact.artifact_id}".green
     end
@@ -116,6 +133,39 @@ module PodPrebuild
     def local_available?(artifact)
       artifact_dir = @local_artifacts_dir + artifact.artifact_id
       artifact_dir.exist? && artifact_dir.directory?
+    end
+
+    # Check if artifact exists in remote cache
+    def remote_available?(artifact)
+      return false if config.local_cache?
+
+      zip_path = @remote_artifacts_dir + artifact.zip_name
+      zip_path.exist?
+    end
+
+    # Download artifact from remote cache
+    def download_artifact(artifact)
+      zip_path = @remote_artifacts_dir + artifact.zip_name
+      artifact_dir = @local_artifacts_dir + artifact.artifact_id
+
+      FileUtils.mkdir_p(artifact_dir)
+      ZipUtils.unzip(zip_path.to_s, to_dir: artifact_dir.to_s)
+
+      # Also download metadata if available
+      metadata_path = @remote_artifacts_dir + artifact.metadata_name
+      if metadata_path.exist?
+        FileUtils.cp(metadata_path, artifact_dir + "metadata.json")
+      end
+    end
+
+    # Zip artifact directory
+    def zip_artifact(artifact_dir, output_zip_path)
+      # Use system zip command
+      Dir.chdir(artifact_dir.dirname) do
+        basename = artifact_dir.basename
+        cmd = "zip -r --symlinks #{output_zip_path.shellescape} #{basename.to_s.shellescape}"
+        system(cmd)
+      end
     end
 
     # Cleanup artifacts using LRU strategy
