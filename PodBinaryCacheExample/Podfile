@@ -5,11 +5,7 @@ install! 'cocoapods',
 
 plugin 'cocoapods-binary-cache'
 config_cocoapods_binary_cache(
-  cache_repo: {
-    "default" => {
-      "local" => "~/.cocoapods-binary-cache/PodBinaryCacheExample-libs"
-    }
-  },
+  cache_path: "~/.cocoapods-binary-cache/PodBinaryCacheExample-libs",
   prebuild_config: "Release",
   xcframework: true,
   device_build_enabled: true,
