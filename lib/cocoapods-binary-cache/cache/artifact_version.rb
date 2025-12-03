@@ -75,7 +75,7 @@ module PodPrebuild
       return nil unless spec.respond_to?(attr_name)
       spec.public_send(attr_name)
     rescue => e
-      Pod::UI.warn "Failed to access spec attribute #{attr_name}: #{e.message}" if PodPrebuild.config.strict_diagnosis?
+      Pod::UI.warn "Failed to access spec attribute #{attr_name}: #{e.message}"
       nil
     end
 
@@ -84,7 +84,7 @@ module PodPrebuild
       return [] unless spec.respond_to?(:dependencies)
       spec.dependencies.map { |d| "#{d.name}:#{d.requirement}" }.sort
     rescue => e
-      Pod::UI.warn "Failed to extract dependencies: #{e.message}" if PodPrebuild.config.strict_diagnosis?
+      Pod::UI.warn "Failed to extract dependencies: #{e.message}"
       []
     end
 
@@ -93,7 +93,7 @@ module PodPrebuild
       return [] unless spec.respond_to?(:available_platforms)
       spec.available_platforms.map(&:name).sort
     rescue => e
-      Pod::UI.warn "Failed to extract platforms: #{e.message}" if PodPrebuild.config.strict_diagnosis?
+      Pod::UI.warn "Failed to extract platforms: #{e.message}"
       []
     end
 

@@ -98,7 +98,6 @@ module PodPrebuild
             published_count += 1
           rescue => e
             Pod::UI.warn "Failed to publish artifact for #{pod_name}: #{e.message}"
-            Pod::UI.warn e.backtrace.join("\n") if @config.strict_diagnosis?
           end
         end
 

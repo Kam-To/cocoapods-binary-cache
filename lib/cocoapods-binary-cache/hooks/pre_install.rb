@@ -72,8 +72,6 @@ module PodPrebuild
     def validate_cache
       validate_cache_with_artifacts
 
-      path_to_save_cache_validation = PodPrebuild.config.save_cache_validation_to
-      @cache_validation.update_to(path_to_save_cache_validation) unless path_to_save_cache_validation.nil?
       cache_validation.print_summary
       PodPrebuild.state.update(:cache_validation => cache_validation)
     end

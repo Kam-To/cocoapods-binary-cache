@@ -20,14 +20,6 @@ module Pod
       )
     end
 
-    def run_code_gen!(targets)
-      return if PodPrebuild.config.prebuild_code_gen.nil?
-
-      Pod::UI.title("Running code generation...") do
-        PodPrebuild.config.prebuild_code_gen.call(self, targets)
-      end
-    end
-
     def targets_to_prebuild
       to_build = PodPrebuild.config.prebuild_all_pods? ? @cache_validation.all : @cache_validation.missed
       pod_targets.select { |target| to_build.include?(target.name) }
@@ -38,8 +30,6 @@ module Pod
       sandbox_path = sandbox.root
       targets = targets_to_prebuild
       Pod::UI.puts "Prebuild frameworks (total #{targets.count}): #{targets.map(&:name)}".magenta
-
-      run_code_gen!(targets)
 
       PodPrebuild.remove_build_dir(sandbox_path)
       PodPrebuild.build(
@@ -100,28 +90,23 @@ module Pod
         path.rmtree if path.exist?
       end
 
-      if PodPrebuild.config.dont_remove_source_code?
-        # just remove the tmp files
-        path = sandbox.root + "Manifest.lock.tmp"
-        path.rmtree if path.exist?
-      else
-        # In artifact mode, only keep the current directory
-        to_remain_files = ["current"]
-        Pod::UI.puts "Cleaning _Prebuild, keeping: #{to_remain_files}".yellow
+      # In artifact mode, only keep the current directory
+      to_remain_files = ["current"]
+      Pod::UI.puts "Cleaning _Prebuild, keeping: #{to_remain_files}".yellow
 
-        # List what's in the sandbox before cleanup
-        current_files = sandbox_path.children.map { |f| File.basename(f) }
-        Pod::UI.puts "Files in _Prebuild before cleanup: #{current_files.join(', ')}".yellow
+      # List what's in the sandbox before cleanup
+      current_files = sandbox_path.children.map { |f| File.basename(f) }
+      Pod::UI.puts "Files in _Prebuild before cleanup: #{current_files.join(', ')}".yellow
 
-        to_delete_files = sandbox_path.children.reject { |file| to_remain_files.include?(File.basename(file)) }
-        Pod::UI.puts "Files to delete: #{to_delete_files.map { |f| File.basename(f) }.join(', ')}".yellow if to_delete_files.any?
+      to_delete_files = sandbox_path.children.reject { |file| to_remain_files.include?(File.basename(file)) }
+      Pod::UI.puts "Files to delete: #{to_delete_files.map { |f| File.basename(f) }.join(', ')}".yellow if to_delete_files.any?
 
-        to_delete_files.each { |file| file.rmtree if file.exist? }
+      to_delete_files.each { |file| file.rmtree if file.exist? }
 
-        # Verify what remains
-        remaining_files = sandbox_path.children.map { |f| File.basename(f) }
-        Pod::UI.puts "Files in _Prebuild after cleanup: #{remaining_files.join(', ')}".yellow
-      end
+      # Verify what remains
+      remaining_files = sandbox_path.children.map { |f| File.basename(f) }
+      Pod::UI.puts "Files in _Prebuild after cleanup: #{remaining_files.join(', ')}".yellow
+
 
     end
 

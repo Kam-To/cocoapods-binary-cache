@@ -235,14 +235,6 @@ module PodPrebuild
       @dsl_config[:xcframework]
     end
 
-    # 是否保留源代码
-    # @return [Boolean] true 表示不删除源码
-    #
-    # 默认行为: 预编译后删除源码以节省空间
-    # 启用此选项: 保留源码，便于调试
-    def dont_remove_source_code?
-      @dsl_config[:dont_remove_source_code]
-    end
 
     # ========================================
     # 日志和调试配置
@@ -264,30 +256,10 @@ module PodPrebuild
       @dsl_config[:build_args]
     end
 
-    # 缓存验证结果保存路径
-    # @return [String, nil] 保存验证结果的文件路径
-    #
-    # 用于调试缓存命中/未命中的原因
-    def save_cache_validation_to
-      @dsl_config[:save_cache_validation_to]
-    end
-
     # 是否验证预编译设置
     # @return [Boolean] true 表示检查预编译框架的编译设置
     def validate_prebuilt_settings
       @dsl_config[:validate_prebuilt_settings]
-    end
-
-    # 预编译时的代码生成钩子
-    # @return [Proc, nil] 代码生成回调
-    def prebuild_code_gen
-      @dsl_config[:prebuild_code_gen]
-    end
-
-    # 是否启用严格诊断模式
-    # @return [Boolean] true 表示输出更详细的调试信息
-    def strict_diagnosis?
-      @dsl_config[:strict_diagnosis]
     end
 
     # 是否静默编译（不输出编译日志）
@@ -390,13 +362,9 @@ module PodPrebuild
         :dev_pods_enabled,            # 是否支持开发 pods
         :device_build_enabled,        # 是否真机编译
         :xcframework,                 # 是否使用 XCFramework
-        :dont_remove_source_code,     # 是否保留源码
         :xcodebuild_log_path,         # 编译日志路径
         :build_args,                  # 自定义编译参数
-        :save_cache_validation_to,    # 验证结果保存路径
         :validate_prebuilt_settings,  # 是否验证编译设置
-        :prebuild_code_gen,           # 代码生成钩子
-        :strict_diagnosis,            # 严格诊断模式
         :silent_build,                # 静默编译
         :artifact_hash_factors,       # Artifact 哈希因素
         :local_artifact_retention     # 本地缓存保留策略
