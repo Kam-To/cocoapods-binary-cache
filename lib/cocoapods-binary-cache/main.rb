@@ -3,7 +3,6 @@
 
 require_relative "ui"
 require_relative "cache/all"
-require_relative "helper/benchmark_show"
 require_relative "helper/json"
 require_relative "helper/lockfile"
 require_relative "helper/path_utils"
@@ -16,4 +15,3 @@ require_relative "pod-binary/prebuild_dsl"
 require_relative "pod-binary/prebuild_hook"
 require_relative "pod-binary/prebuild"
 require_relative "prebuild_output/metadata"
-require_relative "diagnosis/diagnosis"

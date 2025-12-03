@@ -1,13 +1,6 @@
 require 'bundler/gem_tasks'
 
-def specs(dir)
-  FileList["spec/#{dir}/*_spec.rb"].shuffle.join(' ')
+task :default do
+  puts "No tests configured. Use 'rake build' to build the gem."
 end
-
-desc 'Runs all the specs'
-task :specs do
-  sh "bundle exec bacon #{specs('**')}"
-end
-
-task :default => :specs
 

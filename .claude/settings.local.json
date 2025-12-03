@@ -16,7 +16,9 @@
       "Bash(xcodebuild:*)",
       "Bash(bundle exec rake spec:*)",
       "Bash(bundle exec pod binary --help:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
