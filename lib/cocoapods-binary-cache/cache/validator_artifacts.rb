@@ -3,7 +3,7 @@ require_relative "artifact_resolver"
 require_relative "artifact_cache_manager"
 
 module PodPrebuild
-  # Validates cache using artifact-based versioning
+  # 使用基于 artifact 的版本控制验证缓存
   class ArtifactsCacheValidator
     attr_reader :pod_lockfile, :sandbox, :validate_prebuilt_settings, :ignored_pods, :prebuilt_pod_names
 
@@ -16,15 +16,15 @@ module PodPrebuild
       @config = PodPrebuild.config
     end
 
-    # Validate cache using artifact versioning
-    # Returns: CacheValidationResult
+    # 使用 artifact 版本控制验证缓存
+    # 返回：CacheValidationResult
     def validate(*)
       return CacheValidationResult.new if @pod_lockfile.nil?
 
-      # Filter pods to validate (only prebuilt, non-ignored pods)
+      # 过滤要验证的 pods（仅预构建的、未忽略的 pods）
       pods_to_validate = filter_pods_to_validate
 
-      # Resolve artifacts for all pods
+      # 为所有 pods 解析 artifacts
       resolver = ArtifactResolver.new(
         @pod_lockfile,
         @sandbox,
@@ -32,7 +32,7 @@ module PodPrebuild
       )
       artifacts = resolver.resolve_artifacts(pods_to_validate)
 
-      # Check artifact availability
+      # 检查 artifact 可用性
       cache_manager = ArtifactCacheManager.new(@config)
 
       hit = Set.new
@@ -54,18 +54,18 @@ module PodPrebuild
 
     private
 
-    # Filter pods that should be validated
-    # Only include: prebuilt pods that are not ignored
+    # 过滤应该被验证的 pods
+    # 仅包括：未被忽略的预构建 pods
     def filter_pods_to_validate
       all_pods = @pod_lockfile.pods.keys
 
-      # Filter out ignored pods
+      # 过滤掉被忽略的 pods
       pods = all_pods.reject { |name| @ignored_pods.include?(name.split('/').first) }
 
-      # Filter to only prebuilt pods
+      # 仅过滤预构建的 pods
       pods = pods.select { |name| @prebuilt_pod_names.include?(name.split('/').first) }
 
-      # Only validate root specs (not subspecs)
+      # 仅验证根 specs（不包括 subspecs）
       pods.reject { |name| name.include?('/') }
     end
   end

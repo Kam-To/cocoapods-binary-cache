@@ -2,7 +2,7 @@ require_relative "artifact"
 require_relative "artifact_version"
 
 module PodPrebuild
-  # Resolves all required binary artifacts from a lockfile
+  # 从 lockfile 解析所有需要的二进制 artifacts
   class ArtifactResolver
     def initialize(lockfile, sandbox, build_settings_provider)
       @lockfile = lockfile
@@ -10,13 +10,13 @@ module PodPrebuild
       @build_settings_provider = build_settings_provider
     end
 
-    # Resolve all artifacts needed for the current pod installation
-    # Returns: Array of Artifact objects
+    # 解析当前 pod 安装所需的所有 artifacts
+    # 返回：Artifact 对象数组
     def resolve_artifacts(pod_names = nil)
       pods_to_resolve = pod_names || @lockfile.pods.keys
 
       pods_to_resolve.map do |pod_name|
-        # Skip if it's a subspec - we only create artifacts for root specs
+        # 跳过 subspec - 我们只为根 spec 创建 artifacts
         next if pod_name.include?('/')
 
         pod_version = @lockfile.pods[pod_name]
@@ -47,26 +47,26 @@ module PodPrebuild
       end.compact
     end
 
-    # Resolve a single artifact for a specific pod
+    # 解析特定 pod 的单个 artifact
     def resolve_artifact(pod_name)
       resolve_artifacts([pod_name]).first
     end
 
     private
 
-    # Load pod specification from sandbox or spec repos
+    # 从 sandbox 或 spec repos 加载 pod 规格
     def load_pod_spec(pod_name, pod_version)
-      # Try to get spec from sandbox first (works during pod install)
+      # 首先尝试从 sandbox 获取 spec（在 pod install 期间有效）
       if @sandbox && @sandbox.respond_to?(:specification)
         begin
           spec = @sandbox.specification(pod_name)
           return spec if spec
         rescue => e
-          # Sandbox spec not available, try alternative methods
+          # Sandbox spec 不可用，尝试替代方法
         end
       end
 
-      # Try to get from installed pods (analysis_result.specifications)
+      # 尝试从已安装的 pods 获取（analysis_result.specifications）
       if @sandbox && @sandbox.respond_to?(:root)
         podspec_path = @sandbox.root.parent + "Pods" + pod_name + "#{pod_name}.podspec.json"
         if podspec_path.exist?
@@ -74,7 +74,7 @@ module PodPrebuild
         end
       end
 
-      # Fallback to searching in spec repos
+      # 回退到在 spec repos 中搜索
       begin
         dependency = Pod::Dependency.new(pod_name, pod_version)
         set = Pod::Config.instance.sources_manager.search(dependency)
@@ -86,7 +86,7 @@ module PodPrebuild
         Pod::UI.warn "Failed to search for #{pod_name} in spec repos: #{e.message}"
       end
 
-      # Last resort: try to find any version in sources
+      # 最后的手段：尝试在 sources 中找到任何版本
       begin
         sources = Pod::Config.instance.sources_manager.all
         sources.each do |source|

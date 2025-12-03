@@ -1,6 +1,6 @@
 require_relative "validation_result"
 
-# Artifact-based versioning
+# 基于 Artifact 的版本控制
 require_relative "artifact_version"
 require_relative "artifact"
 require_relative "artifact_resolver"

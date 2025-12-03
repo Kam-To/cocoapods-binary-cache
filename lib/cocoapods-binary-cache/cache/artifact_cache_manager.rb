@@ -4,7 +4,7 @@ require_relative "../helper/json"
 require_relative "../../command/helper/zip"
 
 module PodPrebuild
-  # Manages binary artifact cache (local only)
+  # 管理二进制 artifact 缓存（仅本地）
   class ArtifactCacheManager
     attr_reader :config, :local_artifacts_dir, :local_current_dir
 
@@ -14,13 +14,13 @@ module PodPrebuild
       @local_current_dir = Pathname(config.prebuild_sandbox_path) + "current"
     end
 
-    # Check if artifact exists locally
+    # 检查 artifact 是否在本地存在
     def artifact_available?(artifact)
       local_available?(artifact)
     end
 
-    # Fetch artifact from local cache
-    # Returns: :local_hit or :miss
+    # 从本地缓存获取 artifact
+    # 返回：:local_hit 或 :miss
     def fetch_artifact(artifact)
       if local_available?(artifact)
         Pod::UI.puts "  - [Local Hit] #{artifact.artifact_id}".green
@@ -32,16 +32,16 @@ module PodPrebuild
       :miss
     end
 
-    # Publish artifact to local cache
+    # 发布 artifact 到本地缓存
     def publish_artifact(artifact, framework_path)
       artifact_dir = @local_artifacts_dir + artifact.artifact_id
       FileUtils.mkdir_p(artifact_dir)
 
-      # 1. Copy framework/xcframework to artifact directory
+      # 1. 将 framework/xcframework 复制到 artifact 目录
       framework_basename = File.basename(framework_path)
       FileUtils.cp_r(framework_path, artifact_dir + framework_basename)
 
-      # 2. Generate and save metadata
+      # 2. 生成并保存元数据
       metadata = artifact.generate_metadata
       metadata_file = artifact_dir + "metadata.json"
       File.write(metadata_file, JSON.pretty_generate(metadata))
@@ -49,43 +49,43 @@ module PodPrebuild
       Pod::UI.puts "  - [Published] #{artifact.artifact_id}".green
     end
 
-    # Link artifact to current directory for use
+    # 将 artifact 链接到 current 目录以供使用
     def link_to_current(artifact)
       FileUtils.mkdir_p(@local_current_dir)
 
-      # Get artifact directory
+      # 获取 artifact 目录
       artifact_dir = @local_artifacts_dir + artifact.artifact_id
       return unless artifact_dir.exist?
 
-      # In artifact mode, we need to create a target directory structure
-      # Expected: current/{target_name}/xxx.xcframework
-      # Find all framework/xcframework files
+      # 在 artifact 模式下，我们需要创建目标目录结构
+      # 期望：current/{target_name}/xxx.xcframework
+      # 查找所有 framework/xcframework 文件
       frameworks = Dir.glob(artifact_dir + "*.{framework,xcframework}")
 
       frameworks.each do |framework_path|
         framework_name = File.basename(framework_path)
-        # Use pod name as target name (remove .xcframework/.framework extension)
+        # 使用 pod 名称作为 target 名称（移除 .xcframework/.framework 扩展名）
         target_name = framework_name.sub(/\.(xc)?framework$/, '')
 
-        # Create target directory: current/{target_name}/
+        # 创建 target 目录：current/{target_name}/
         target_dir = @local_current_dir + target_name
         FileUtils.mkdir_p(target_dir)
 
-        # Link framework to current/{target_name}/xxx.xcframework
+        # 将 framework 链接到 current/{target_name}/xxx.xcframework
         link_path = target_dir + framework_name
 
-        # Remove existing link/directory
+        # 移除现有的链接/目录
         FileUtils.rm_rf(link_path) if link_path.exist?
 
-        # Create symlink
+        # 创建符号链接
         FileUtils.ln_s(framework_path, link_path)
 
-        # Create .pod_name flag file so prebuild_sandbox can identify the pod
-        # Use artifact name (pod name) from the artifact object
+        # 创建 .pod_name 标志文件，以便 prebuild_sandbox 可以识别 pod
+        # 使用 artifact 对象中的 artifact 名称（pod 名称）
         pod_name_file = target_dir + "#{artifact.name}.pod_name"
         File.write(pod_name_file, "")
 
-        # Copy metadata.json to target directory for resource handling
+        # 将 metadata.json 复制到 target 目录以处理资源
         metadata_src = artifact_dir + "metadata.json"
         metadata_dst = target_dir + "metadata.json"
         if metadata_src.exist?
@@ -94,7 +94,7 @@ module PodPrebuild
       end
     end
 
-    # Clean up old artifacts based on retention policy
+    # 根据保留策略清理旧的 artifacts
     def cleanup_old_artifacts(retention_policy = {})
       return unless @local_artifacts_dir.exist?
 
@@ -112,23 +112,23 @@ module PodPrebuild
 
     private
 
-    # Check if artifact exists locally
+    # 检查 artifact 是否在本地存在
     def local_available?(artifact)
       artifact_dir = @local_artifacts_dir + artifact.artifact_id
       artifact_dir.exist? && artifact_dir.directory?
     end
 
-    # Cleanup artifacts using LRU strategy
+    # 使用 LRU 策略清理 artifacts
     def cleanup_by_lru(max_count, max_size_mb)
       return unless @local_artifacts_dir.exist?
 
       artifacts = Dir.glob(@local_artifacts_dir + "*").map { |path| Pathname(path) }
       return if artifacts.empty?
 
-      # Sort by access time (LRU)
+      # 按访问时间排序（LRU）
       artifacts.sort_by!(&:atime)
 
-      # Remove oldest artifacts if exceeding max_count
+      # 如果超过 max_count，删除最旧的 artifacts
       if max_count && artifacts.size > max_count
         to_remove = artifacts[0...(artifacts.size - max_count)]
         to_remove.each do |path|
@@ -138,7 +138,7 @@ module PodPrebuild
         artifacts = artifacts[(artifacts.size - max_count)..-1]
       end
 
-      # Remove oldest artifacts if exceeding max_size_mb
+      # 如果超过 max_size_mb，删除最旧的 artifacts
       if max_size_mb
         total_size_mb = artifacts.sum { |path| dir_size_mb(path) }
         while total_size_mb > max_size_mb && artifacts.any?
@@ -151,7 +151,7 @@ module PodPrebuild
       end
     end
 
-    # Calculate directory size in MB
+    # 计算目录大小（单位：MB）
     def dir_size_mb(path)
       size_bytes = `du -sk #{path.shellescape}`.split.first.to_i * 1024
       size_bytes / (1024.0 * 1024.0)

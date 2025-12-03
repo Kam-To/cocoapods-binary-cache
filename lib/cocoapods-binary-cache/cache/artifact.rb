@@ -1,5 +1,5 @@
 module PodPrebuild
-  # Represents a binary artifact for a specific pod version with build configuration
+  # 表示特定 pod 版本及其构建配置的二进制 artifact
   class Artifact
     attr_reader :name, :version, :artifact_id, :spec, :build_settings
 
@@ -11,30 +11,30 @@ module PodPrebuild
       @build_settings = build_settings
     end
 
-    # Zip filename for the artifact
-    # Example: AFNetworking-4.0.1-a1b2c3d4.zip
+    # artifact 的 Zip 文件名
+    # 示例：AFNetworking-4.0.1-a1b2c3d4.zip
     def zip_name
       "#{artifact_id}.zip"
     end
 
-    # Metadata filename for the artifact
-    # Example: AFNetworking-4.0.1-a1b2c3d4.json
+    # artifact 的元数据文件名
+    # 示例：AFNetworking-4.0.1-a1b2c3d4.json
     def metadata_name
       "#{artifact_id}.json"
     end
 
-    # Build hash extracted from artifact_id
-    # Example: "a1b2c3d4" from "AFNetworking-4.0.1-a1b2c3d4"
+    # 从 artifact_id 提取的构建哈希
+    # 示例：从 "AFNetworking-4.0.1-a1b2c3d4" 提取 "a1b2c3d4"
     def build_hash
       artifact_id.split('-').last
     end
 
-    # Root pod name (without subspec)
+    # 根 pod 名称（不包含 subspec）
     def root_name
       name.split('/').first
     end
 
-    # Generate metadata JSON for this artifact
+    # 为此 artifact 生成元数据 JSON
     def generate_metadata
       {
         name: name,
