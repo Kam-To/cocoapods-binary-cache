@@ -103,7 +103,7 @@ module PodPrebuild
     # 预编译沙盒路径
     # @return [String] 存放预编译中间产物的目录
     #
-    # 默认值: "_Prebuild"
+    # 默认值: "Pods/_Prebuild"
     # 目录结构:
     #   _Prebuild/
     #   ├── current/          # 当前使用的预编译框架（符号链接）
@@ -111,7 +111,7 @@ module PodPrebuild
     #   │       └── AFNetworking.xcframework -> ../../artifacts/...
     #   └── Pods/             # 预编译时的临时 Pods 目录
     def prebuild_sandbox_path
-      @dsl_config[:prebuild_sandbox_path] || "_Prebuild"
+      @dsl_config[:prebuild_sandbox_path] || "Pods/_Prebuild"
     end
 
     # 获取预编译产物的最终存放路径
