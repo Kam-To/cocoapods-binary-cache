@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "rdbg: pod binary prebuild (launch)",
+      "type": "rdbg",
+      "request": "launch",
+      "script": "${workspaceFolder}/PodBinaryCacheExample/debug_pod_prebuild.rb",
+      "cwd": "${workspaceFolder}/PodBinaryCacheExample",
+      "useBundler": true
+    }
+  ]
+}
