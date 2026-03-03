@@ -3,6 +3,51 @@ require "json"
 
 module PodPrebuild
   class ArtifactVersion
+    # Frozen artifact-id inputs for non-dev pods. Changes to this list are
+    # intentionally breaking because they redefine cache identity.
+    STANDARD_FACTOR_KEYS = [
+      :version,
+      :source,
+      :dev_pod_source_hash,
+      :source_files,
+      :public_header_files,
+      :private_header_files,
+      :vendored_frameworks,
+      :vendored_libraries,
+      :dependencies,
+      :resolved_dependencies,
+      :compiler_flags,
+      :frameworks,
+      :weak_frameworks,
+      :libraries,
+      :xcconfig,
+      :pod_target_xcconfig,
+      :user_target_xcconfig,
+      :build_settings,
+      :platforms,
+      :deployment_target,
+      :requires_arc,
+      :module_name,
+      :module_map,
+      :header_dir,
+      :header_mappings_dir,
+      :swift_version,
+      :resources,
+      :resource_bundles,
+      :preserve_paths,
+      :prepare_command,
+      :script_phases
+    ].freeze
+
+    # Frozen artifact-id inputs for dev pods declared via :path.
+    DEV_POD_FACTOR_KEYS = [
+      :version,
+      :source,
+      :dev_pod_source_hash,
+      :resolved_dependencies,
+      :build_settings
+    ].freeze
+
     # 生成唯一的 artifact 标识符
     # 格式：PodName-Version-BuildHash
     # 示例：AFNetworking-4.0.1-a1b2c3d4
@@ -20,15 +65,33 @@ module PodPrebuild
     # 收集所有影响二进制 artifact 的因素
     def self.collect_build_factors(spec, build_settings, resolved_dependencies, dev_pod_source_hash)
       if dev_pod_source_hash
-        return {
+        return dev_pod_build_factors(
+          spec,
+          build_settings,
+          resolved_dependencies,
+          dev_pod_source_hash
+        )
+      end
+
+      standard_build_factors(
+        spec,
+        build_settings,
+        resolved_dependencies,
+        dev_pod_source_hash
+      )
+    end
+
+    def self.dev_pod_build_factors(spec, build_settings, resolved_dependencies, dev_pod_source_hash)
+      {
           version: safe_spec_attr(spec, :version).to_s,
           source: { dev_pod: true },
           dev_pod_source_hash: dev_pod_source_hash,
           resolved_dependencies: normalize_array(resolved_dependencies),
           build_settings: normalize_build_settings(build_settings)
-        }
-      end
+      }
+    end
 
+    def self.standard_build_factors(spec, build_settings, resolved_dependencies, dev_pod_source_hash)
       {
         # 0. 版本 - 重要：包含版本号以区分不同版本
         # 即使两个版本的 spec 内容相同，它们也应该产生不同的 artifacts
@@ -80,7 +143,7 @@ module PodPrebuild
       }
     end
 
-    private_class_method :compute_build_hash, :collect_build_factors
+    private_class_method :compute_build_hash, :collect_build_factors, :dev_pod_build_factors, :standard_build_factors
 
     # 安全地访问 spec 属性
     def self.safe_spec_attr(spec, attr_name)

@@ -62,4 +62,16 @@ RSpec.describe PodPrebuild::ArtifactVersion do
 
     expect(first).to eq(second)
   end
+
+  it "freezes the documented standard factor keys" do
+    factors = described_class.send(:standard_build_factors, spec, {}, ["Reachability:3.2"], nil)
+
+    expect(factors.keys).to eq(described_class::STANDARD_FACTOR_KEYS)
+  end
+
+  it "freezes the documented dev pod factor keys" do
+    factors = described_class.send(:dev_pod_build_factors, spec, {}, ["Reachability:3.2"], "abc123")
+
+    expect(factors.keys).to eq(described_class::DEV_POD_FACTOR_KEYS)
+  end
 end

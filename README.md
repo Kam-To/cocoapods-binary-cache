@@ -34,6 +34,7 @@ $ gem install cocoapods-binary-cache
 ## How it works
 
 Check out the [documentation on how it works](/docs/how_it_works.md) for more information.
+For the frozen cache identity inputs, see [Artifact ID Rules](/docs/artifact_id_rules.md).
 
 ## Usage
 
