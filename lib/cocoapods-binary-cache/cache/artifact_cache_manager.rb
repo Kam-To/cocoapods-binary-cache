@@ -37,6 +37,13 @@ module PodPrebuild
       artifact_dir = @local_artifacts_dir + artifact.artifact_id
       FileUtils.mkdir_p(artifact_dir)
 
+      # Cache hit artifacts are linked into current/. Skip republishing when the
+      # framework already resolves to this artifact directory.
+      if framework_already_cached?(framework_path, artifact_dir)
+        Pod::UI.puts "  - [Skip] #{artifact.artifact_id} already cached".yellow
+        return
+      end
+
       # 1. 将 framework/xcframework 复制到 artifact 目录
       framework_basename = File.basename(framework_path)
       FileUtils.cp_r(framework_path, artifact_dir + framework_basename)
@@ -116,6 +123,17 @@ module PodPrebuild
     def local_available?(artifact)
       artifact_dir = @local_artifacts_dir + artifact.artifact_id
       artifact_dir.exist? && artifact_dir.directory?
+    end
+
+    def framework_already_cached?(framework_path, artifact_dir)
+      return false unless File.exist?(framework_path)
+
+      source_realpath = File.realpath(framework_path)
+      artifact_realpath = artifact_dir.realpath.to_s
+
+      source_realpath == artifact_realpath || source_realpath.start_with?(artifact_realpath + File::SEPARATOR)
+    rescue Errno::ENOENT
+      false
     end
 
     # 使用 LRU 策略清理 artifacts

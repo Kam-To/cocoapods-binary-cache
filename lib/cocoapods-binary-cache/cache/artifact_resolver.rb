@@ -71,13 +71,19 @@ module PodPrebuild
       []
     end
 
+    def spec_matches_version?(spec, pod_version)
+      spec && spec.respond_to?(:version) && spec.version.to_s == pod_version.to_s
+    rescue
+      false
+    end
+
     # 从 sandbox 或 spec repos 加载 pod 规格
     def load_pod_spec(pod_name, pod_version)
       # 首先尝试从 sandbox 获取 spec（在 pod install 期间有效）
       if @sandbox && @sandbox.respond_to?(:specification)
         begin
           spec = @sandbox.specification(pod_name)
-          return spec if spec
+          return spec if spec_matches_version?(spec, pod_version)
         rescue => e
           # Sandbox spec 不可用，尝试替代方法
         end
@@ -87,7 +93,8 @@ module PodPrebuild
       if @sandbox && @sandbox.respond_to?(:root)
         podspec_path = @sandbox.root.parent + "Pods" + pod_name + "#{pod_name}.podspec.json"
         if podspec_path.exist?
-          return Pod::Specification.from_file(podspec_path)
+          spec = Pod::Specification.from_file(podspec_path)
+          return spec if spec_matches_version?(spec, pod_version)
         end
       end
 
