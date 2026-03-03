@@ -25,12 +25,14 @@ module PodPrebuild
         begin
           spec = load_pod_spec(pod_name, pod_version)
           build_settings = @build_settings_provider&.call(pod_name) || {}
+          resolved_dependencies = resolved_dependencies_for(spec)
 
           artifact_id = ArtifactVersion.generate(
             pod_name,
             pod_version,
             spec,
-            build_settings
+            build_settings,
+            resolved_dependencies
           )
 
           Artifact.new(
@@ -53,6 +55,21 @@ module PodPrebuild
     end
 
     private
+
+    def resolved_dependencies_for(spec)
+      return [] unless spec.respond_to?(:dependencies)
+
+      spec.dependencies.map do |dependency|
+        dependency_name = dependency.name.split("/").first
+        dependency_version = @lockfile.pods[dependency_name]
+        next unless dependency_version
+
+        "#{dependency_name}:#{dependency_version}"
+      end.compact.uniq.sort
+    rescue => e
+      Pod::UI.warn "Failed to resolve dependencies for #{spec.name}: #{e.message}"
+      []
+    end
 
     # 从 sandbox 或 spec repos 加载 pod 规格
     def load_pod_spec(pod_name, pod_version)

@@ -6,19 +6,19 @@ module PodPrebuild
     # 生成唯一的 artifact 标识符
     # 格式：PodName-Version-BuildHash
     # 示例：AFNetworking-4.0.1-a1b2c3d4
-    def self.generate(pod_name, pod_version, spec, build_settings)
-      build_hash = compute_build_hash(spec, build_settings)
+    def self.generate(pod_name, pod_version, spec, build_settings, resolved_dependencies = [])
+      build_hash = compute_build_hash(spec, build_settings, resolved_dependencies)
       "#{pod_name}-#{pod_version}-#{build_hash}"
     end
 
     # 基于所有影响二进制产物的因素计算构建哈希
-    def self.compute_build_hash(spec, build_settings)
-      content = collect_build_factors(spec, build_settings)
+    def self.compute_build_hash(spec, build_settings, resolved_dependencies)
+      content = collect_build_factors(spec, build_settings, resolved_dependencies)
       Digest::SHA256.hexdigest(content.to_json)[0..7] # 8 字符哈希
     end
 
     # 收集所有影响二进制 artifact 的因素
-    def self.collect_build_factors(spec, build_settings)
+    def self.collect_build_factors(spec, build_settings, resolved_dependencies)
       {
         # 0. 版本 - 重要：包含版本号以区分不同版本
         # 即使两个版本的 spec 内容相同，它们也应该产生不同的 artifacts
@@ -34,6 +34,7 @@ module PodPrebuild
 
         # 2. 依赖关系
         dependencies: safe_dependencies(spec),
+        resolved_dependencies: normalize_array(resolved_dependencies),
 
         # 3. 构建配置
         compiler_flags: safe_spec_attr(spec, :compiler_flags),
