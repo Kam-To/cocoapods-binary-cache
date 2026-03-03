@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
   spec.files         = Dir["lib/**/*"]
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "cocoapods", ">= 1.5.0"
+  spec.add_dependency "cocoapods", ">= 1.16.0"
   spec.add_dependency "fourflusher", "~> 2.0"
   spec.add_dependency "rgl", "~> 0.5.6"
   spec.add_dependency "xcpretty", "~> 0.3.0"

@@ -11,7 +11,7 @@ A plugin that helps to reduce the build time of Xcode projects which use CocoaPo
 Requirements
 
 - Ruby: >= 2.4
-- CocoaPods: >= 1.5.0
+- CocoaPods: >= 1.16.0
 
 ### Via [Bundler](https://bundler.io/)
 

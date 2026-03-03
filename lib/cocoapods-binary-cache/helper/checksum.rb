@@ -12,7 +12,7 @@ class FolderChecksum
   def self.git_checksum(dir)
     root = File.realdirpath(dir)
     files = Dir.chdir(root) do
-      `git ls-files --cached --others --exclude-standard .`.split("\n").map { |path| File.join(root, path) }
+      `git ls-files --cached --others --exclude-standard . 2>/dev/null`.split("\n").map { |path| File.join(root, path) }
     end
     files = source_files(root) if files.empty?
     files = files.reject { |path| ignored_path?(path) }

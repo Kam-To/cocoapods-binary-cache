@@ -11,32 +11,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Ruby setup
-        uses: actions/setup-ruby@v1
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: 2.7
-      - name: Bundle installation
-        run: |
-          gem install bundler:2.1.2
-          bundle install
+          bundler-cache: true
       - name: RSpec
         run: |
-          bundle exec rspec
+          bundle exec rspec spec
 
   integration_test:
     runs-on: macOS-latest
     strategy:
       matrix:
-        mode: [non-prebuild, prebuild-changes, prebuild-all]
-        xcframework: [false, true]
+        mode: [afnetworking-switch, dev-pod-switch]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-      - name: Bundle installation
+        uses: actions/checkout@v4
+      - name: Ruby setup
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+          bundler-cache: true
+      - name: Bundle installation (example)
+        working-directory: PodBinaryCacheExample
         run: |
-          gem install bundler:2.1.2
           bundle install
       - name: Integration tests
         run: |
-          sh scripts/integration_test.sh ${{matrix.mode}} ${{matrix.xcframework}}
+          sh scripts/integration_test.sh ${{matrix.mode}}
