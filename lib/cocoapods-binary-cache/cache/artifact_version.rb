@@ -6,19 +6,29 @@ module PodPrebuild
     # 生成唯一的 artifact 标识符
     # 格式：PodName-Version-BuildHash
     # 示例：AFNetworking-4.0.1-a1b2c3d4
-    def self.generate(pod_name, pod_version, spec, build_settings, resolved_dependencies = [])
-      build_hash = compute_build_hash(spec, build_settings, resolved_dependencies)
+    def self.generate(pod_name, pod_version, spec, build_settings, resolved_dependencies = [], dev_pod_source_hash = nil)
+      build_hash = compute_build_hash(spec, build_settings, resolved_dependencies, dev_pod_source_hash)
       "#{pod_name}-#{pod_version}-#{build_hash}"
     end
 
     # 基于所有影响二进制产物的因素计算构建哈希
-    def self.compute_build_hash(spec, build_settings, resolved_dependencies)
-      content = collect_build_factors(spec, build_settings, resolved_dependencies)
+    def self.compute_build_hash(spec, build_settings, resolved_dependencies, dev_pod_source_hash)
+      content = collect_build_factors(spec, build_settings, resolved_dependencies, dev_pod_source_hash)
       Digest::SHA256.hexdigest(content.to_json)[0..7] # 8 字符哈希
     end
 
     # 收集所有影响二进制 artifact 的因素
-    def self.collect_build_factors(spec, build_settings, resolved_dependencies)
+    def self.collect_build_factors(spec, build_settings, resolved_dependencies, dev_pod_source_hash)
+      if dev_pod_source_hash
+        return {
+          version: safe_spec_attr(spec, :version).to_s,
+          source: { dev_pod: true },
+          dev_pod_source_hash: dev_pod_source_hash,
+          resolved_dependencies: normalize_array(resolved_dependencies),
+          build_settings: normalize_build_settings(build_settings)
+        }
+      end
+
       {
         # 0. 版本 - 重要：包含版本号以区分不同版本
         # 即使两个版本的 spec 内容相同，它们也应该产生不同的 artifacts
@@ -26,6 +36,7 @@ module PodPrebuild
 
         # 1. 源码相关
         source: normalize_source(safe_spec_attr(spec, :source)),
+        dev_pod_source_hash: dev_pod_source_hash,
         source_files: safe_spec_attr(spec, :source_files),
         public_header_files: safe_spec_attr(spec, :public_header_files),
         private_header_files: safe_spec_attr(spec, :private_header_files),

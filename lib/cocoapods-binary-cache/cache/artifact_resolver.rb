@@ -26,13 +26,15 @@ module PodPrebuild
           spec = load_pod_spec(pod_name, pod_version)
           build_settings = @build_settings_provider&.call(pod_name) || {}
           resolved_dependencies = resolved_dependencies_for(spec)
+          dev_pod_source_hash = @lockfile.dev_pod_hash(pod_name)
 
           artifact_id = ArtifactVersion.generate(
             pod_name,
             pod_version,
             spec,
             build_settings,
-            resolved_dependencies
+            resolved_dependencies,
+            dev_pod_source_hash
           )
 
           Artifact.new(

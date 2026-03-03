@@ -7,6 +7,7 @@ plugin 'cocoapods-binary-cache'
 config_cocoapods_binary_cache(
   cache_path: "~/.cocoapods-binary-cache/PodBinaryCacheExample-libs",
   prebuild_config: "Release",
+  dev_pods_enabled: true,
   xcframework: true,
   device_build_enabled: true,
   build_args: {
@@ -34,6 +35,8 @@ target 'PodBinCacheExample' do
   use_frameworks!
   
   pod 'AFNetworking', '3.2.1', :binary => true
+#  pod 'AFNetworking', :git => 'https://git-opd.nie.netease.com/gl-ios/afnetworking.git', :tag => '2.7.2', :binary => true
+  pod 'AmrCodec', :path => '../local_pod/AmrCodec', :binary => true
   pod 'SDWebImage', :binary => true
   pod 'SnapKit', :binary => true
   pod 'Kingfisher', :binary => true

@@ -105,21 +105,32 @@ module PodPrebuild
         resolved_versions[root_name] ||= spec.version.to_s
       end
 
+      original_lockfile = installer_context.lockfile
+      external_sources = original_lockfile ? (original_lockfile.to_hash["EXTERNAL SOURCES"] || {}) : {}
+      defined_in_file = original_lockfile if original_lockfile&.respond_to?(:defined_in_file)
+
       # Create a fake Pod::Lockfile that will work with PodPrebuild::Lockfile
-      FakeLockfile.new(resolved_versions)
+      FakeLockfile.new(resolved_versions, external_sources, defined_in_file)
     end
 
     # Minimal fake lockfile that provides the interface needed by PodPrebuild::Lockfile
     class FakeLockfile
-      def initialize(resolved_versions)
+      attr_reader :defined_in_file
+
+      def initialize(resolved_versions, external_sources = {}, defined_in_file = nil)
         @resolved_versions = resolved_versions
+        @external_sources = external_sources
+        @defined_in_file = defined_in_file&.defined_in_file
       end
 
       def to_hash
         # Build PODS array in the format expected by Lockfile.pod_from
         # Format: ["PodName (version)"]
         pods_array = @resolved_versions.map { |name, version| "#{name} (#{version})" }
-        { 'PODS' => pods_array }
+        {
+          'PODS' => pods_array,
+          'EXTERNAL SOURCES' => @external_sources
+        }
       end
     end
 

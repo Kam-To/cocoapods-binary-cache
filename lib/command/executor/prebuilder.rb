@@ -54,7 +54,7 @@ module PodPrebuild
     # - 因此遍历 current/ 目录即可实现增量发布
     def publish_artifacts
       Pod::UI.step("Publishing artifacts") do
-        lockfile = installer.lockfile
+        lockfile = project_lockfile || installer.lockfile
         return unless lockfile
 
         resolver = PodPrebuild::ArtifactResolver.new(
@@ -106,6 +106,16 @@ module PodPrebuild
         # 清理旧的 artifacts（根据保留策略）
         cache_manager.cleanup_old_artifacts(@config.local_artifact_retention)
       end
+    end
+
+    def project_lockfile
+      lockfile_path = Pathname(Pod::Config.instance.lockfile_path || "Podfile.lock")
+      return unless lockfile_path.exist?
+
+      Pod::Lockfile.from_file(lockfile_path)
+    rescue => e
+      Pod::UI.warn "Failed to load project Podfile.lock: #{e.message}"
+      nil
     end
   end
 end

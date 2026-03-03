@@ -14,6 +14,7 @@ PODS:
   - AFNetworking/Serialization (3.2.1)
   - AFNetworking/UIKit (3.2.1):
     - AFNetworking/NSURLSession
+  - AmrCodec (0.0.1)
   - Kingfisher (8.5.0)
   - SDWebImage (5.21.2):
     - SDWebImage/Core (= 5.21.2)
@@ -22,6 +23,7 @@ PODS:
 
 DEPENDENCIES:
   - AFNetworking (= 3.2.1)
+  - AmrCodec (from `../local_pod/AmrCodec`)
   - Kingfisher
   - SDWebImage
   - SnapKit
@@ -33,12 +35,17 @@ SPEC REPOS:
     - SDWebImage
     - SnapKit
 
+EXTERNAL SOURCES:
+  AmrCodec:
+    :path: "../local_pod/AmrCodec"
+
 SPEC CHECKSUMS:
   AFNetworking: cb604b1c2bded0871f5f61f5d53653739e841d6b
+  AmrCodec: cccd18bd6d8a668783ed427ff7e54403f3c3ea1f
   Kingfisher: ff0d31a1f07bdff6a1ebb3ba08b8e6e567b6500c
   SDWebImage: 9f177d83116802728e122410fb25ad88f5c7608a
   SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
 
-PODFILE CHECKSUM: 54682a9a7cffa58987b8a6a643abecc61d730241
+PODFILE CHECKSUM: 0b483f0def1e9c584c59b6f7ed8a5ff9b9f6bcfe
 
 COCOAPODS: 1.16.2

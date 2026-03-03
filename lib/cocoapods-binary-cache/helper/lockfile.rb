@@ -1,3 +1,4 @@
+require "pathname"
 require_relative "checksum"
 
 module PodPrebuild
@@ -18,7 +19,7 @@ module PodPrebuild
     end
 
     def dev_pod_sources
-      @dev_pod_sources ||= external_sources.select { |_, attributes| attributes.key?(:path) } || {}
+      @dev_pod_sources ||= external_sources.select { |_, attributes| dev_pod_path_value(attributes) } || {}
     end
 
     def dev_pod_names
@@ -68,7 +69,29 @@ module PodPrebuild
     # Generate a map between a dev_pod and it source hash
     def dev_pod_hashes_map
       @dev_pod_hashes_map ||=
-        dev_pod_sources.map { |name, attribs| [name, FolderChecksum.git_checksum(attribs[:path])] }.to_h
+        dev_pod_sources.map { |name, attribs| [name, FolderChecksum.git_checksum(resolve_dev_pod_path(dev_pod_path_value(attribs)))] }.to_h
+    end
+
+    def dev_pod_path_value(attributes)
+      attributes[:path] || attributes[":path"] || attributes["path"]
+    end
+
+    def resolve_dev_pod_path(path)
+      return path unless path
+
+      source_path = Pathname(path)
+      return source_path.to_s if source_path.absolute?
+
+      project_root = Pod::Config.instance.project_root rescue nil
+      return source_path.expand_path(project_root).to_s if project_root
+
+      podfile_path = Pod::Config.instance.podfile&.defined_in_file rescue nil
+      return source_path.expand_path(Pathname(podfile_path).dirname).to_s if podfile_path
+
+      lockfile_path = lockfile.respond_to?(:defined_in_file) ? lockfile.defined_in_file : nil
+      return source_path.expand_path(Pathname(lockfile_path).dirname).to_s if lockfile_path
+
+      source_path.expand_path.to_s
     end
 
     # Parse an item under `PODS` section of a Lockfile
