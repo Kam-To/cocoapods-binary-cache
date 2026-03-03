@@ -1,178 +1,164 @@
-# CocoaPods binary cache
+# CocoaPods Binary Cache
 
 [![Test](https://img.shields.io/github/workflow/status/grab/cocoapods-binary-cache/test)](https://img.shields.io/github/workflow/status/grab/cocoapods-binary-cache/test)
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat&color=blue)](https://github.com/grab/cocoapods-binary-cache/blob/master/LICENSE)
 [![Gem](https://img.shields.io/gem/v/cocoapods-binary-cache.svg?style=flat&color=blue)](https://rubygems.org/gems/cocoapods-binary-cache)
 
-A plugin that helps to reduce the build time of Xcode projects which use CocoaPods by prebuilding pod frameworks and cache them in a remote repository to share across multiple machines.
+这是一个 CocoaPods 插件，用来把指定 pods 预编译成 `framework/xcframework`，并缓存到本地目录中复用，从而减少 `pod install` 后的编译时间。
 
-## Installation
+当前仓库是基于原始 `grab/cocoapods-binary-cache` 的本地化改造版本，**现阶段只保留本地缓存能力，不再包含远端缓存仓库的 fetch / push 流程**。
 
-Requirements
+## 环境要求
 
 - Ruby: >= 2.4
 - CocoaPods: >= 1.16.0
 
-### Via [Bundler](https://bundler.io/)
+## 安装
 
-Add the gem `cocoapods-binary-cache` to the `Gemfile` of your project.
+### 通过 Bundler
+
+在业务工程的 `Gemfile` 中加入：
 
 ```rb
 gem "cocoapods-binary-cache", :git => "https://github.com/grab/cocoapods-binary-cache.git", :tag => "0.1.11"
 ```
 
-Then, run `bundle install` to install the added gem.
-
-In case you're not familiar with [`bundler`](https://bundler.io/), take a look at [Learn how to set it up here](https://www.mokacoding.com/blog/ruby-for-ios-developers-bundler/).
-
-### Via [RubyGems](https://rubygems.org/)
+然后执行：
 
 ```sh
-$ gem install cocoapods-binary-cache
+bundle install
 ```
 
-## How it works
+### 通过 RubyGems
 
-Check out the [documentation on how it works](/docs/how_it_works.md) for more information.
-For the frozen cache identity inputs, see [Artifact ID Rules](/docs/artifact_id_rules.md).
+```sh
+gem install cocoapods-binary-cache
+```
 
-## Usage
+## 核心能力
 
-### 1. Configure cache repo
+- 基于 `:binary => true` 标记预编译 pods
+- 通过本地 `artifact_id` 管理二进制产物
+- 支持 `xcframework`
+- 支持 `:path` 开发 pod 的本地源码变更感知
+- 支持本地缓存目录的 LRU 清理策略
 
-First of all, create a git repo that will be used as a storage of your prebuilt frameworks. Make sure this git repo is accessible via `git clone` and `git fetch`. Specify this cache repo in the following section.
+## 基本用法
 
-### 2. Configure Podfile
-
-**2.1. Load the `cocoapods-binary-cache` plugin.**
-
-Add the following line at the beginning of Podfile:
+### 1. 在 Podfile 中启用插件
 
 ```rb
 plugin "cocoapods-binary-cache"
 ```
 
-**2.2. Configure `cocoapods-binary-cache`**
+### 2. 配置本地缓存
+
+当前使用 `cache_path` 指定本地缓存目录：
 
 ```rb
 config_cocoapods_binary_cache(
-  cache_repo: {
-    "default" => {
-      "local" => "~/.cocoapods-binary-cache/prebuilt-frameworks"
-    }
-  },
-  prebuild_config: "Debug"
+  cache_path: "~/.cocoapods-binary-cache/prebuilt-frameworks",
+  prebuild_config: "Release",
+  xcframework: true,
+  device_build_enabled: true
 )
 ```
-For details about options to use with the `config_cocoapods_binary_cache` function, check out [our guidelines on how to configure `cocoapods-binary-cache`](/docs/configure_cocoapods_binary_cache.md).
 
-**2.3. Declare pods as prebuilt pods**
+常用配置项：
 
-To declare a pod as a prebuilt pod (sometimes referred to as *binary pod*), add the option `:binary => true` as follows:
+- `cache_path`: 本地缓存目录
+- `prebuild_config`: 预编译使用的 build configuration
+- `xcframework`: 是否生成 `xcframework`
+- `device_build_enabled`: 是否同时编译真机产物
+- `dev_pods_enabled`: 是否允许 `:path` pod 进入预编译
+- `local_artifact_retention`: 本地缓存保留策略
+
+### 3. 标记需要预编译的 pods
+
 ```rb
-pod "Alamofire", "5.2.1", :binary => true
+pod "AFNetworking", "3.2.1", :binary => true
+pod "AmrCodec", :path => "../local_pod/AmrCodec", :binary => true
 ```
 
-NOTE:
+说明：
 
-- Dependencies of a prebuilt pod will be automatically treated as prebuilt pods.\
-For example, if `RxCocoa` is declared as a prebuilt pod using the `:binary => true` option, then `RxSwift`, one of its dependencies, is also treated as a prebuilt pod.
+- 一个 pod 被标记为 `:binary => true` 后，其依赖会按当前解析结果一起参与缓存判定
+- `:path` pod 会把本地源码目录内容纳入缓存 key；源码变更后会自动 miss 并重新预编译
 
-### 3. CLI
-
-We provided some command line interfaces (CLI):
-
-- Fetch from cache repo
-```sh
-$ bundle exec pod binary fetch
-```
-- Prebuild binary pods
-```sh
-$ bundle exec pod binary prebuild [--push]
-```
-- Push the prebuilt pods to the cache repo
-```sh
-$ bundle exec pod binary push
-```
-
-For each command, you can run with option `--help` for more details about how to use each:
-```sh
-$ bundle exec pod binary fetch --help
-```
-
-### 4. A trivial workflow
-
-A trivial workflow when using this plugin is to fetch from cache repo, followed by a pod installation, as follows:
+### 4. 预编译
 
 ```sh
-$ bundle exec pod binary fetch
-$ bundle exec pod install
+bundle exec pod binary prebuild
 ```
 
-For other usages, check out the [best practices docs](/docs/best_practices.md).
+可选参数：
 
-## Benchmark
+- `--repo-update`: 预编译前执行 repo update
 
-We created a project to benchmark how much of the improvements we gain from this plugin. The demo project is using the following pods:
+### 5. 安装 pods
 
-```
-AFNetworking
-SDWebImage
-Alamofire
-MBProgressHUD
-Masonry
-SwiftyJSON
-SVProgressHUD
-MJRefresh
-CocoaLumberjack
-Realm
-SnapKit
-Kingfisher
-```
-
-Below is the result we recorded:
-
-<img src=resources/benchmark.png width=700></img>
-
-Hardware specs of the above benchmark:
-```
-MacBook Pro (15-inch, 2018)
-Mac OS 10.14.6
-Processor 2.6 GHz Intel Core i7
-Memory 16 GB 2400 MHz DDR4
-```
-
-You can also try it out on your local:
 ```sh
-$ cd PodBinaryCacheExample
-$ sh BuildBenchMark.sh
+bundle exec pod install
 ```
 
-In our real project with around 15% of swift/ObjC code from vendor pods. After applying this technique, we notice a reduction of around 10% in build time.
-<img src=resources/realproj_buildtime_trend.png width=700></img>
+推荐日常流程：
 
-## Known issues and roadmap
+```sh
+bundle exec pod binary prebuild
+bundle exec pod install
+```
 
-### Exporting IPA with Bitcode
-- When exporting an IPA with Bitcode, remember to disable the _rebuild from bitcode_ option. Refer to https://github.com/grab/cocoapods-binary-cache/issues/24.
+## 缓存模型
 
-### Pods with headers only
-- By default, pods with empty sources (ie. pods with header files only) will be automatically excluded and they will be later integrated as normal. For now, we rely on the `source_files` patterns declared in podspec to heuristically detect empty-sources pods.
-- However, there are cases in which the `source_files` of a pod looks like non-empty sources (ex. `s.source_files = "**/*.{c,h,m,mm,cpp}"`) despite having header files only. For those cases, you need to manually add them to the `excluded_pods` option.
+当前实现是**本地 artifact 缓存**：
 
-## Best practices
+- 缓存目录由 `cache_path` 决定
+- 每个产物以 `artifact_id` 作为目录名
+- 命中时会从本地缓存链接到 `_Prebuild/current`
+- 未命中时会重新编译并发布到本地缓存
 
-Check out our [Best practices](/docs/best_practices.md) for for information.
+`artifact_id` 的输入规则已经冻结，详见：
 
-## Troubleshooting
+- [Artifact ID Rules](docs/artifact_id_rules.md)
 
-Check out our [Troubleshooting guidelines](/docs/troubleshooting_guidelines.md) for more information.
+## 测试与回归
 
-## Contribution
+仓库已经包含基础回归测试：
 
-Check out [CONTRIBUTING.md](CONTRIBUTING.md) for more information on hw to contribute to this repo.
+```sh
+bundle exec rspec spec
+```
 
-## License
+还提供了集成测试脚本：
 
-The cocoapods-binary-cache plugin is available as open-source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
-It uses [cocoapods-rome](https://github.com/CocoaPods/Rome) and [cocoapods-binary](https://github.com/leavez/cocoapods-binary) internally, which are also under MIT License.
+```sh
+sh scripts/integration_test.sh
+```
+
+可选模式：
+
+- `afnetworking-switch`
+- `dev-pod-switch`
+- `all`
+
+## 示例工程
+
+示例工程位于：
+
+- [PodBinaryCacheExample](PodBinaryCacheExample)
+
+它用于验证：
+
+- 常规三方 pod 的缓存命中
+- `:path` 开发 pod 的缓存 key 稳定性
+- `xcframework` 预编译流程
+
+## 已知限制
+
+- 当前不支持远端缓存仓库同步
+- 构建行为仍然依赖本地 Xcode / CocoaPods 环境
+- 首次引入某个 pod 或 cache miss 时，仍需要执行真实预编译
+
+## 许可证
+
+本项目遵循 [MIT License](https://opensource.org/licenses/MIT)。

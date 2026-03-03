@@ -6,14 +6,14 @@ build_project() {
   rm -rf Pods
   rm -rf DerivedData
 
-  start_fetch_time="$(date -u +%s)"
+  start_prebuild_time="$(date -u +%s)"
   if [ $1 = "cache_on" ]; then
-    echo "fetch prebuilt binary cache"
-    pod binary-cache --cmd=fetch
+    echo "prebuild binary cache"
+    bundle exec pod binary prebuild
   fi
-  end_fetch_time="$(date -u +%s)"
-  fetch_cache_time="$(($end_fetch_time-$start_fetch_time))"
-  echo 'fetch_cache_time: ' $fetch_cache_time
+  end_prebuild_time="$(date -u +%s)"
+  prebuild_cache_time="$(($end_prebuild_time-$start_prebuild_time))"
+  echo 'prebuild_cache_time: ' $prebuild_cache_time
 
   echo "Install pods"
   start_install_time="$(date -u +%s)"
@@ -33,14 +33,14 @@ export IS_POD_BINARY_CACHE_ENABLED='false'
 start_time="$(date -u +%s)"
 build_project "cache_off"
 end_time="$(date -u +%s)"
-buildtime_no_cache="$(($end_time-$start_time))"
+buildtime_without_prebuild="$(($end_time-$start_time))"
 
 export IS_POD_BINARY_CACHE_ENABLED='true'
 
 start_time="$(date -u +%s)"
 build_project "cache_on"
 end_time="$(date -u +%s)"
-buildtime_with_cache="$(($end_time-$start_time))"
+buildtime_with_prebuild="$(($end_time-$start_time))"
 
 echo '-------------------'
-echo "Build time no cache: $buildtime_no_cache \nBuild time with cache: $buildtime_with_cache"
+echo "Build time without prebuild: $buildtime_without_prebuild \nBuild time with prebuild: $buildtime_with_prebuild"

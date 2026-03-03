@@ -12,7 +12,7 @@ ENV['LC_ALL'] ||= 'en_US.UTF-8'
 require "bundler/setup"
 
 # 允许通过环境变量传入额外的 CLI 参数，例如：
-#   PREBUILD_ARGS="--push --repo-update --config=Release" ruby debug_pod_prebuild.rb
+#   PREBUILD_ARGS="--repo-update" ruby debug_pod_prebuild.rb
 extra_args = ENV["PREBUILD_ARGS"]&.split(/\s+/) || []
 
 # CocoaPods 本身和插件入口
