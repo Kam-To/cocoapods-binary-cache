@@ -39,9 +39,8 @@ gem install cocoapods-binary-cache
 
 - 基于 `:binary => true` 标记预编译 pods
 - 通过本地 `artifact_id` 管理二进制产物
-- 支持 `xcframework`
+- 默认生成同时支持模拟器和真机的 `xcframework`
 - 支持 `:path` 开发 pod 的本地源码变更感知
-- 支持本地缓存目录的 LRU 清理策略
 
 ## 基本用法
 
@@ -58,9 +57,7 @@ plugin "cocoapods-binary-cache"
 ```rb
 config_cocoapods_binary_cache(
   cache_path: "~/.cocoapods-binary-cache/prebuilt-frameworks",
-  prebuild_config: "Release",
-  xcframework: true,
-  device_build_enabled: true
+  prebuild_config: "Release"
 )
 ```
 
@@ -68,8 +65,6 @@ config_cocoapods_binary_cache(
 
 - `cache_path`: 本地缓存目录
 - `prebuild_config`: 预编译使用的 build configuration
-- `xcframework`: 是否生成 `xcframework`
-- `device_build_enabled`: 是否同时编译真机产物
 
 ### 3. 标记需要预编译的 pods
 

@@ -15,7 +15,7 @@
 # - cache_path: 本地缓存路径
 # - prebuild_config: 编译配置（Debug/Release）
 # - excluded_pods: 不进行预编译的 pods
-# - xcframework: 是否使用 xcframework 格式
+# - xcframework: 默认生成 xcframework
 # ========================================
 
 module PodPrebuild
@@ -97,14 +97,14 @@ module PodPrebuild
     # @return [String] 预编译框架的存放路径
     #
     # 默认值: "_Prebuilt"
-    # 如果启用了 xcframework，会自动将 .framework 扩展名转换为 .xcframework
+    # 预编译产物固定使用 xcframework
     #
     # 示例:
     #   prebuilt_path                    # => "_Prebuilt"
-    #   prebuilt_path(path: "AFNetworking.framework")  # => "_Prebuilt/AFNetworking.xcframework" (如果启用 xcframework)
+    #   prebuilt_path(path: "AFNetworking.framework")  # => "_Prebuilt/AFNetworking.xcframework"
     def prebuilt_path(path: nil)
       p = Pathname.new(path.nil? ? "_Prebuilt" : "_Prebuilt/#{path}")
-      p = p.sub_ext(".xcframework") if xcframework? && p.extname == ".framework"
+      p = p.sub_ext(".xcframework") if p.extname == ".framework"
       p.to_s
     end
 
@@ -184,26 +184,6 @@ module PodPrebuild
     # ========================================
     # 编译选项配置
     # ========================================
-
-    # 是否启用真机编译
-    # @return [Boolean] true 表示为真机设备编译
-    #
-    # false: 只为模拟器编译（更快，但不能用于真机）
-    # true: 为真机和模拟器都编译（使用 xcframework）
-    def device_build_enabled?
-      @dsl_config[:device_build_enabled]
-    end
-
-    # 是否使用 XCFramework 格式
-    # @return [Boolean] true 表示生成 .xcframework 而非 .framework
-    #
-    # XCFramework 的优势:
-    # - 同时支持模拟器和真机
-    # - 支持多个架构（x86_64, arm64, arm64-simulator）
-    def xcframework?
-      @dsl_config[:xcframework]
-    end
-
 
     # ========================================
     # 日志和调试配置
@@ -315,8 +295,6 @@ module PodPrebuild
         :prebuild_job,                # 是否为预编译任务（内部使用）
         :prebuild_all_pods,           # 是否编译所有 pods
         :excluded_pods,               # 排除的 pods
-        :device_build_enabled,        # 是否真机编译
-        :xcframework,                 # 是否使用 XCFramework
         :xcodebuild_log_path,         # 编译日志路径
         :build_args,                  # 自定义编译参数
         :validate_prebuilt_settings,  # 是否验证编译设置

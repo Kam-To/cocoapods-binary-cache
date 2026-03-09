@@ -22,13 +22,7 @@ module PodPrebuild
       sdks.each { |sdk| build_for_sdk(sdk) }
 
       targets.each do |target|
-        if PodPrebuild.config.xcframework?
-          create_xcframework(target)
-        elsif sdks.count > 1
-          create_fat_framework(target)
-        else
-          collect_output(target, Dir[target_products_dir_of(target, sdks[0]) + "/*"])
-        end
+        create_xcframework(target)
       end
     end
 
@@ -48,12 +42,7 @@ module PodPrebuild
     end
 
     def build_types
-      @build_types ||= begin
-        # TODO (thuyen): Add DSL options `build_for_types` to specify build types
-        types = [:simulator]
-        types << :device if device_build_enabled?
-        types
-      end
+      @build_types ||= [:simulator, :device]
     end
 
     def make_up_build_args(args)
@@ -113,68 +102,6 @@ module PodPrebuild
       `#{cmd.join(" ")}`
     end
 
-    def create_fat_framework(target)
-      # When merging contents of `simulator` & `device`, prefer contents of `device` over `simulator`
-      # https://github.com/grab/cocoapods-binary-cache/issues/25
-      collect_output(target, Dir[target_products_dir_of(target, device) + "/*"])
-
-      merge_framework_binary(target)
-      merge_framework_dsym(target)
-      merge_swift_headers(target)
-      merge_swift_modules(target)
-    end
-
-    def merge_framework_binary(target)
-      merge_contents(target, "/#{target.product_module_name}", &method(:create_fat_binary))
-    end
-
-    def merge_framework_dsym(target)
-      merge_contents(
-        target,
-        ".dSYM/Contents/Resources/DWARF/#{target.product_module_name}",
-        &method(:create_fat_binary)
-      )
-    end
-
-    def merge_swift_headers(target)
-      merge_contents(target, "/Headers/#{target.product_module_name}-Swift.h") do |options|
-        merged_header = <<~HEREDOC
-          #if TARGET_OS_SIMULATOR // merged by cocoapods-binary
-          #{File.read(options[:simulator])}
-          #else // merged by cocoapods-binary
-          #{File.read(options[:device])}
-          #endif // merged by cocoapods-binary
-        HEREDOC
-        File.write(options[:output], merged_header.strip)
-      end
-    end
-
-    def merge_swift_modules(target)
-      merge_contents(target, "/Modules/#{target.product_module_name}.swiftmodule") do |options|
-        # Note: swiftmodules of `device` were copied beforehand,
-        # here, we only need to copy swiftmodules of `simulator`
-        FileUtils.cp_r(options[:simulator] + "/.", options[:output])
-      end
-    end
-
-    def merge_contents(target, path_suffix, &merger)
-      simulator_, device_, output_ = [
-        framework_path_of(target, simulator),
-        framework_path_of(target, device),
-        "#{output_path(target)}/#{target.product_module_name}.framework"
-      ].map { |p| p + path_suffix }
-      return unless File.exist?(simulator_) && File.exist?(device_)
-
-      merger.call(simulator: simulator_, device: device_, output: output_)
-    end
-
-    def create_fat_binary(options)
-      cmd = ["lipo", " -create"]
-      cmd << "-output" << options[:output]
-      cmd << options[:simulator].shellescape << options[:device].shellescape
-      `#{cmd.join(" ")}`
-    end
-
     def collect_output(target, paths)
       FileUtils.mkdir_p(output_path(target))
       paths = [paths] unless paths.is_a?(Array)
@@ -222,10 +149,6 @@ module PodPrebuild
 
     def configuration
       @options[:configuration]
-    end
-
-    def device_build_enabled?
-      @options[:device_build_enabled]
     end
 
     def device

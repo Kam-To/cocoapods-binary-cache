@@ -7,8 +7,6 @@ plugin 'cocoapods-binary-cache'
 config_cocoapods_binary_cache(
   cache_path: "~/.cocoapods-binary-cache/PodBinaryCacheExample-libs",
   prebuild_config: "Release",
-  xcframework: true,
-  device_build_enabled: true,
   build_args: {
     :simulator => [
       "ARCHS='x86_64 arm64'"

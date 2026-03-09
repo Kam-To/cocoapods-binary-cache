@@ -37,7 +37,6 @@ module Pod
         targets: targets,
         configuration: PodPrebuild.config.prebuild_config,
         output_path: sandbox.generate_framework_path,
-        device_build_enabled: PodPrebuild.config.device_build_enabled?,
         log_path: PodPrebuild.config.xcodebuild_log_path,
         args: PodPrebuild.config.build_args
       )
