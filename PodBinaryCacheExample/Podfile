@@ -12,11 +12,7 @@ config_cocoapods_binary_cache(
       "ARCHS='x86_64 arm64'"
     ],
     default: ["MACH_O_TYPE=staticlib"]
-  },
-
-  # Artifact-based versioning is now the only mode (always enabled)
-  # Customize hash factors if needed:
-  artifact_hash_factors: [:source, :dependencies, :build_settings, :compiler_flags, :deployment_target]
+  }
 )
 
 

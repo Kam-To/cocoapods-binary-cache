@@ -218,24 +218,6 @@ module PodPrebuild
     end
 
     # ========================================
-    # Artifact 缓存配置
-    # ========================================
-
-    # 计算 artifact 哈希时考虑的因素
-    # @return [Array<Symbol>] 哈希因素列表
-    #
-    # 默认因素: [:source, :dependencies, :build_settings, :compiler_flags, :deployment_target]
-    # 这些因素决定了什么情况下需要重新编译:
-    # - source: 源码地址变化
-    # - dependencies: 依赖关系变化
-    # - build_settings: 编译设置变化
-    # - compiler_flags: 编译器标志变化
-    # - deployment_target: 部署目标版本变化
-    def artifact_hash_factors
-      @dsl_config[:artifact_hash_factors] || default_artifact_hash_factors
-    end
-
-    # ========================================
     # 运行时检测配置（由插件自动更新）
     # ========================================
 
@@ -271,18 +253,6 @@ module PodPrebuild
 
     private
 
-    # 默认的 artifact 哈希因素
-    # @return [Array<Symbol>] 默认因素列表
-    def default_artifact_hash_factors
-      [
-        :source,              # 源码来源（Git URL、tag、commit）
-        :dependencies,        # 依赖的其他 pods 及其版本
-        :build_settings,      # Pod 的编译设置
-        :compiler_flags,      # 编译器标志
-        :deployment_target   # iOS/macOS 最低支持版本
-      ]
-    end
-
     # 可用的 DSL 配置选项列表
     # @return [Array<Symbol>] 有效的配置项名称
     #
@@ -298,8 +268,7 @@ module PodPrebuild
         :xcodebuild_log_path,         # 编译日志路径
         :build_args,                  # 自定义编译参数
         :validate_prebuilt_settings,  # 是否验证编译设置
-        :silent_build,                # 静默编译
-        :artifact_hash_factors        # Artifact 哈希因素
+        :silent_build                 # 静默编译
       ]
     end
   end
