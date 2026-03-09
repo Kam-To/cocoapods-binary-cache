@@ -71,7 +71,6 @@ config_cocoapods_binary_cache(
 - `xcframework`: 是否生成 `xcframework`
 - `device_build_enabled`: 是否同时编译真机产物
 - `dev_pods_enabled`: 是否允许 `:path` pod 进入预编译
-- `local_artifact_retention`: 本地缓存保留策略
 
 ### 3. 标记需要预编译的 pods
 

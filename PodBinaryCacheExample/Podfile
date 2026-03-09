@@ -19,13 +19,7 @@ config_cocoapods_binary_cache(
 
   # Artifact-based versioning is now the only mode (always enabled)
   # Customize hash factors if needed:
-  artifact_hash_factors: [:source, :dependencies, :build_settings, :compiler_flags, :deployment_target],
-
-  local_artifact_retention: {
-    strategy: :lru,
-    max_count: 50,
-    max_size_mb: 5000
-  }
+  artifact_hash_factors: [:source, :dependencies, :build_settings, :compiler_flags, :deployment_target]
 )
 
 

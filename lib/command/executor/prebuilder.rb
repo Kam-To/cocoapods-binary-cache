@@ -103,8 +103,6 @@ module PodPrebuild
 
         Pod::UI.puts "Published #{published_count} artifact(s)".green
 
-        # 清理旧的 artifacts（根据保留策略）
-        cache_manager.cleanup_old_artifacts(@config.local_artifact_retention)
       end
     end
 

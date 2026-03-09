@@ -264,19 +264,6 @@ module PodPrebuild
       @dsl_config[:artifact_hash_factors] || default_artifact_hash_factors
     end
 
-    # 本地 artifact 保留策略
-    # @return [Hash] 保留策略配置
-    #
-    # 示例配置:
-    # {
-    #   strategy: :lru,       # 使用 LRU (最近最少使用) 策略
-    #   max_count: 50,        # 最多保留 50 个 artifacts
-    #   max_size_mb: 5000     # 最多占用 5GB 空间
-    # }
-    def local_artifact_retention
-      @dsl_config[:local_artifact_retention] || {}
-    end
-
     # ========================================
     # 运行时检测配置（由插件自动更新）
     # ========================================
@@ -344,8 +331,7 @@ module PodPrebuild
         :build_args,                  # 自定义编译参数
         :validate_prebuilt_settings,  # 是否验证编译设置
         :silent_build,                # 静默编译
-        :artifact_hash_factors,       # Artifact 哈希因素
-        :local_artifact_retention     # 本地缓存保留策略
+        :artifact_hash_factors        # Artifact 哈希因素
       ]
     end
   end

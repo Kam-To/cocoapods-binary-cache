@@ -101,22 +101,6 @@ module PodPrebuild
       end
     end
 
-    # 根据保留策略清理旧的 artifacts
-    def cleanup_old_artifacts(retention_policy = {})
-      return unless @local_artifacts_dir.exist?
-
-      strategy = retention_policy[:strategy] || :lru
-      max_count = retention_policy[:max_count]
-      max_size_mb = retention_policy[:max_size_mb]
-
-      case strategy
-      when :lru
-        cleanup_by_lru(max_count, max_size_mb)
-      else
-        Pod::UI.warn "Unknown cleanup strategy: #{strategy}"
-      end
-    end
-
     private
 
     # 检查 artifact 是否在本地存在
@@ -136,43 +120,5 @@ module PodPrebuild
       false
     end
 
-    # 使用 LRU 策略清理 artifacts
-    def cleanup_by_lru(max_count, max_size_mb)
-      return unless @local_artifacts_dir.exist?
-
-      artifacts = Dir.glob(@local_artifacts_dir + "*").map { |path| Pathname(path) }
-      return if artifacts.empty?
-
-      # 按访问时间排序（LRU）
-      artifacts.sort_by!(&:atime)
-
-      # 如果超过 max_count，删除最旧的 artifacts
-      if max_count && artifacts.size > max_count
-        to_remove = artifacts[0...(artifacts.size - max_count)]
-        to_remove.each do |path|
-          Pod::UI.puts "  - [Cleanup] Removing old artifact: #{path.basename}"
-          FileUtils.rm_rf(path)
-        end
-        artifacts = artifacts[(artifacts.size - max_count)..-1]
-      end
-
-      # 如果超过 max_size_mb，删除最旧的 artifacts
-      if max_size_mb
-        total_size_mb = artifacts.sum { |path| dir_size_mb(path) }
-        while total_size_mb > max_size_mb && artifacts.any?
-          path = artifacts.shift
-          size_mb = dir_size_mb(path)
-          Pod::UI.puts "  - [Cleanup] Removing old artifact: #{path.basename} (#{size_mb.round(2)} MB)"
-          FileUtils.rm_rf(path)
-          total_size_mb -= size_mb
-        end
-      end
-    end
-
-    # 计算目录大小（单位：MB）
-    def dir_size_mb(path)
-      size_bytes = `du -sk #{path.shellescape}`.split.first.to_i * 1024
-      size_bytes / (1024.0 * 1024.0)
-    end
   end
 end
