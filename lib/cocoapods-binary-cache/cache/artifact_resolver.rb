@@ -100,18 +100,6 @@ module PodPrebuild
         end
       end
 
-      # 回退到在 spec repos 中搜索
-      begin
-        dependency = Pod::Dependency.new(pod_name, pod_version)
-        set = Pod::Config.instance.sources_manager.search(dependency)
-
-        if set && set.respond_to?(:specification)
-          return set.specification
-        end
-      rescue => e
-        Pod::UI.warn "Failed to search for #{pod_name} in spec repos: #{e.message}"
-      end
-
       # 最后的手段：尝试在 sources 中找到任何版本
       begin
         sources = Pod::Config.instance.sources_manager.all
