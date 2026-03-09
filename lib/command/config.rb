@@ -185,15 +185,6 @@ module PodPrebuild
     # 编译选项配置
     # ========================================
 
-    # 是否启用开发 pods 的预编译
-    # @return [Boolean] true 表示也预编译本地开发的 pods
-    #
-    # 开发 pods 是指通过 :path 引入的本地 pods:
-    #   pod 'MyLocalPod', :path => '../MyLocalPod', :binary => true
-    def dev_pods_enabled?
-      @dsl_config[:dev_pods_enabled]
-    end
-
     # 是否启用真机编译
     # @return [Boolean] true 表示为真机设备编译
     #
@@ -324,7 +315,6 @@ module PodPrebuild
         :prebuild_job,                # 是否为预编译任务（内部使用）
         :prebuild_all_pods,           # 是否编译所有 pods
         :excluded_pods,               # 排除的 pods
-        :dev_pods_enabled,            # 是否支持开发 pods
         :device_build_enabled,        # 是否真机编译
         :xcframework,                 # 是否使用 XCFramework
         :xcodebuild_log_path,         # 编译日志路径

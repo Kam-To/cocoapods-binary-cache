@@ -18,8 +18,6 @@ module Pod
       private
 
       def install_prebuilt_framework!
-        return if !PodPrebuild.config.dev_pods_enabled? && sandbox.local?(name)
-
         # make a symlink to target folder
         # TODO (bang): Unify to 1 sandbox to optimize and avoid inconsistency
         # if spec used in multiple platforms, it may return multiple paths

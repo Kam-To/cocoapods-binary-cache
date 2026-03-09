@@ -70,7 +70,6 @@ config_cocoapods_binary_cache(
 - `prebuild_config`: 预编译使用的 build configuration
 - `xcframework`: 是否生成 `xcframework`
 - `device_build_enabled`: 是否同时编译真机产物
-- `dev_pods_enabled`: 是否允许 `:path` pod 进入预编译
 
 ### 3. 标记需要预编译的 pods
 

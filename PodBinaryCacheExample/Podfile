@@ -7,7 +7,6 @@ plugin 'cocoapods-binary-cache'
 config_cocoapods_binary_cache(
   cache_path: "~/.cocoapods-binary-cache/PodBinaryCacheExample-libs",
   prebuild_config: "Release",
-  dev_pods_enabled: true,
   xcframework: true,
   device_build_enabled: true,
   build_args: {

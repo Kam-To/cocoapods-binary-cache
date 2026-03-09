@@ -91,21 +91,6 @@ path.write_text(text)
 PY
 }
 
-set_dev_pods_enabled() {
-  python3 - "$PODFILE" <<'PY'
-from pathlib import Path
-import sys
-
-path = Path(sys.argv[1])
-text = path.read_text()
-if "  dev_pods_enabled: true,\n" not in text:
-    text = text.replace("  prebuild_config: \"Release\",\n", "  prebuild_config: \"Release\",\n  dev_pods_enabled: true,\n")
-if "  pod 'AmrCodec', :path => '../local_pod/AmrCodec', :binary => true\n" not in text:
-    text = text.replace("#  pod 'AFNetworking', :git => 'https://git-opd.nie.netease.com/gl-ios/afnetworking.git', :tag => '2.7.2', :binary => true\n", "#  pod 'AFNetworking', :git => 'https://git-opd.nie.netease.com/gl-ios/afnetworking.git', :tag => '2.7.2', :binary => true\n  pod 'AmrCodec', :path => '../local_pod/AmrCodec', :binary => true\n")
-path.write_text(text)
-PY
-}
-
 mutate_amr_source() {
   python3 - "$AMR_FILE" <<'PY'
 from pathlib import Path
@@ -143,7 +128,6 @@ test_afnetworking_switch() {
 
 test_dev_pod_switch() {
   echo "Running dev pod source-hash regression"
-  set_dev_pods_enabled
   run_prebuild "$TMP_DIR/dev_v1.log"
   first_key="$(extract_key "AmrCodec" "$TMP_DIR/dev_v1.log")"
   assert_non_empty "$first_key" "AmrCodec key missing before source mutation"
