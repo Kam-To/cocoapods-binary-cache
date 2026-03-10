@@ -11,7 +11,20 @@ module PodPrebuild
     end
 
     def pods
-      @pods ||= (@data["PODS"] || []).map { |v| pod_from(v) }.to_h
+      @pods ||= begin
+        parsed_pods = (@data["PODS"] || []).map { |v| pod_from(v) }.to_h
+
+        # Some lockfiles only list subspec entries (for example `Lynx/Framework`)
+        # even though the build/publish pipeline resolves artifacts by root pod
+        # name. Fold subspec versions back onto their root names when the root
+        # entry is absent.
+        parsed_pods.keys.select { |name| name.include?("/") }.each do |subspec_name|
+          root_name = subspec_name.split("/").first
+          parsed_pods[root_name] ||= parsed_pods[subspec_name]
+        end
+
+        parsed_pods
+      end
     end
 
     def external_sources

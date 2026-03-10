@@ -54,4 +54,25 @@ RSpec.describe PodPrebuild::Lockfile do
       expect(podfile_hash).to eq(manifest_hash)
     end
   end
+
+  it "folds subspec-only entries back onto root pod names" do
+    lockfile = FakeLockfile.new(
+      {
+        "PODS" => [
+          "Lynx/Framework (3.4.1)",
+          "Lynx/ReleaseResource (3.4.1)",
+          "PrimJS/napi (2.14.0-rc.1)",
+          "PrimJS/quickjs (2.14.0-rc.1)"
+        ]
+      },
+      "/tmp/Podfile.lock"
+    )
+
+    wrapper = described_class.new(lockfile)
+
+    expect(wrapper.pods["Lynx"]).to eq("3.4.1")
+    expect(wrapper.pods["PrimJS"]).to eq("2.14.0-rc.1")
+    expect(wrapper.pods["Lynx/Framework"]).to eq("3.4.1")
+    expect(wrapper.pods["PrimJS/napi"]).to eq("2.14.0-rc.1")
+  end
 end

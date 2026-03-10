@@ -1,4 +1,4 @@
-platform :ios, '13.0'
+platform :ios, '12.0'
 
 install! 'cocoapods',
 :generate_multiple_pod_projects => true
@@ -44,12 +44,12 @@ post_install do |installer|
         # 安全检查：确保 IPHONEOS_DEPLOYMENT_TARGET 存在且不为空
         deployment_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
         if deployment_target && !deployment_target.to_s.empty?
-          if Gem::Version.new('13.0') > Gem::Version.new(deployment_target)
-            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+          if Gem::Version.new('12.0') > Gem::Version.new(deployment_target)
+            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
           end
         else
           # 如果不存在，直接设置
-          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
         end
       end
     end
