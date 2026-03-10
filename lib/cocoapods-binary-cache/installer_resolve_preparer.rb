@@ -13,7 +13,6 @@ module PodPrebuild
       Pod::UI.title("Detect implicit dependencies") { detect_implicit_dependencies }
       Pod::UI.title("Validate prebuilt cache") { validate_cache }
       prebuild_if_needed
-      prepare_for_integration
     end
 
     private
@@ -81,12 +80,6 @@ module PodPrebuild
       )
       published_count = publisher.publish
       Pod::UI.puts "Published #{published_count} artifact(s) for integration".green
-    end
-
-    def prepare_for_integration
-      PodPrebuild.config.prebuilt_pod_names.each do |name|
-        installer.sandbox.remove_local_podspec(name) if installer.sandbox.checkout_sources.key?(name)
-      end
     end
 
     def prebuild_sandbox
