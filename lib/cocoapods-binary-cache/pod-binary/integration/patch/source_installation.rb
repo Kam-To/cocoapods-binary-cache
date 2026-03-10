@@ -46,6 +46,8 @@ module Pod
     end
 
     def should_integrate_prebuilt_pod?(name)
+      return false if sandbox.is_a?(Pod::PrebuildSandbox)
+
       if PodPrebuild.config.prebuild_job?
         # In a prebuild job, at the integration stage, all prebuilt frameworks should be
         # ready for integration regardless of whether there was any cache miss or not.
