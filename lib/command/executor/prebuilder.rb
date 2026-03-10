@@ -13,6 +13,8 @@
 # ========================================
 
 require_relative "base"
+require_relative "../../cocoapods-binary-cache/cache/current_artifact_publisher"
+require_relative "../../cocoapods-binary-cache/helper/resolved_lockfile"
 
 module PodPrebuild
   class CachePrebuilder < CommandExecutor
@@ -32,6 +34,7 @@ module PodPrebuild
     def run
       prebuild        # 执行预编译
       publish_artifacts  # 发布新编译的 artifacts 到本地缓存
+      cleanup_prebuild_sandbox
     end
 
     private
@@ -57,49 +60,16 @@ module PodPrebuild
         lockfile = project_lockfile || installer.lockfile
         return unless lockfile
 
-        resolver = PodPrebuild::ArtifactResolver.new(
-          PodPrebuild::Lockfile.new(lockfile),
-          installer.sandbox,
-          @config.validate_prebuilt_settings
+        publisher = PodPrebuild::CurrentArtifactPublisher.new(
+          config: @config,
+          prebuild_sandbox: Pod::PrebuildSandbox.from_standard_sandbox(installer.sandbox),
+          artifacts_by_name: PodPrebuild.state.artifacts,
+          lockfile: PodPrebuild::ResolvedLockfile.from_specs(installer.analysis_result.specifications, lockfile),
+          sandbox: installer.sandbox,
+          build_settings_provider: @config.validate_prebuilt_settings
         )
 
-        cache_manager = PodPrebuild::ArtifactCacheManager.new(@config)
-        current_dir = Pathname(@config.prebuild_sandbox_path) + "current"
-
-        # 检查 current 目录是否存在
-        unless current_dir.exist?
-          Pod::UI.puts "No artifacts to publish (current directory does not exist)".yellow
-          return
-        end
-
-        # 遍历 current/ 中的所有 pod 目录
-        published_count = 0
-        current_dir.children.select(&:directory?).each do |pod_dir|
-          pod_name = pod_dir.basename.to_s
-
-          # 解析 artifact
-          artifact = resolver.resolve_artifact(pod_name)
-          unless artifact
-            Pod::UI.warn "Failed to resolve artifact for #{pod_name}"
-            next
-          end
-
-          # 查找 framework/xcframework 文件
-          framework_file = Dir.glob(pod_dir + "*.{framework,xcframework}").first
-          unless framework_file
-            Pod::UI.warn "Framework file not found for #{pod_name} in #{pod_dir}"
-            next
-          end
-
-          # 发布 artifact
-          begin
-            Pod::UI.puts "Publishing artifact: #{pod_name}".green
-            cache_manager.publish_artifact(artifact, framework_file)
-            published_count += 1
-          rescue => e
-            Pod::UI.warn "Failed to publish artifact for #{pod_name}: #{e.message}"
-          end
-        end
+        published_count = publisher.publish
 
         Pod::UI.puts "Published #{published_count} artifact(s)".green
 
@@ -114,6 +84,14 @@ module PodPrebuild
     rescue => e
       Pod::UI.warn "Failed to load project Podfile.lock: #{e.message}"
       nil
+    end
+
+    def cleanup_prebuild_sandbox
+      prebuild_sandbox = Pod::PrebuildSandbox.from_standard_sandbox(installer.sandbox)
+      return unless prebuild_sandbox.root.exist?
+
+      FileUtils.rm_rf(prebuild_sandbox.root)
+      Pod::UI.puts "Removed temporary prebuild sandbox: #{prebuild_sandbox.root}".yellow
     end
   end
 end

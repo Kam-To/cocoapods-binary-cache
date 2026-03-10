@@ -6,7 +6,8 @@ module PodPrebuild
   class State
     def initialize
       @store = {
-        :cache_validation => CacheValidationResult.new
+        :cache_validation => CacheValidationResult.new,
+        :artifacts => {}
       }
     end
 
@@ -16,6 +17,14 @@ module PodPrebuild
 
     def cache_validation
       @store[:cache_validation]
+    end
+
+    def artifacts
+      @store[:artifacts] || {}
+    end
+
+    def artifact_for(name)
+      artifacts[name]
     end
   end
 end

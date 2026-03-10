@@ -6,6 +6,7 @@ module PodPrebuild
   # 使用基于 artifact 的版本控制验证缓存
   class ArtifactsCacheValidator
     attr_reader :pod_lockfile, :sandbox, :validate_prebuilt_settings, :ignored_pods, :prebuilt_pod_names
+    attr_reader :resolved_artifacts
 
     def initialize(options)
       @pod_lockfile = options[:pod_lockfile] && PodPrebuild::Lockfile.new(options[:pod_lockfile])
@@ -14,6 +15,7 @@ module PodPrebuild
       @ignored_pods = options[:ignored_pods] || Set.new
       @prebuilt_pod_names = options[:prebuilt_pod_names] || Set.new
       @config = PodPrebuild.config
+      @resolved_artifacts = {}
     end
 
     # 使用 artifact 版本控制验证缓存
@@ -31,6 +33,7 @@ module PodPrebuild
         @validate_prebuilt_settings
       )
       artifacts = resolver.resolve_artifacts(pods_to_validate)
+      @resolved_artifacts = artifacts.each_with_object({}) { |artifact, map| map[artifact.name] = artifact }
 
       # 检查 artifact 可用性
       cache_manager = ArtifactCacheManager.new(@config)

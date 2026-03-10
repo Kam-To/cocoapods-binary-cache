@@ -1,3 +1,6 @@
+require_relative "../cache/current_artifact_publisher"
+require_relative "../helper/resolved_lockfile"
+
 module PodPrebuild
   class PreInstallHook
     include ObjectSpace
@@ -73,7 +76,6 @@ module PodPrebuild
       validate_cache_with_artifacts
 
       cache_validation.print_summary
-      PodPrebuild.state.update(:cache_validation => cache_validation)
     end
 
     def validate_cache_with_artifacts
@@ -83,55 +85,27 @@ module PodPrebuild
       # The original lockfile is loaded from disk before dependency resolution
       # After resolve_dependencies, we need to use the resolved specs
       lockfile_to_use = create_resolved_lockfile
-
-      @cache_validation = PodPrebuild::ArtifactsCacheValidator.new(
+      validator = PodPrebuild::ArtifactsCacheValidator.new(
         pod_lockfile: lockfile_to_use,
         sandbox: @original_installer.sandbox,
         validate_prebuilt_settings: PodPrebuild.config.validate_prebuilt_settings,
         ignored_pods: PodPrebuild.config.excluded_pods,
         prebuilt_pod_names: PodPrebuild.config.prebuilt_pod_names
-      ).validate
+      )
+
+      @cache_validation = validator.validate
+      PodPrebuild.state.update(
+        :cache_validation => cache_validation,
+        :artifacts => validator.resolved_artifacts
+      )
     end
 
     # Create a lockfile-like object from resolved specifications
     def create_resolved_lockfile
-      # Get resolved specs from analysis_result
-      resolved_specs = @original_installer.analysis_result.specifications
-
-      # Build version hash compatible with PodPrebuild::Lockfile
-      resolved_versions = {}
-      resolved_specs.each do |spec|
-        root_name = spec.name.split('/').first
-        resolved_versions[root_name] ||= spec.version.to_s
-      end
-
-      original_lockfile = installer_context.lockfile
-      external_sources = original_lockfile ? (original_lockfile.to_hash["EXTERNAL SOURCES"] || {}) : {}
-      defined_in_file = original_lockfile if original_lockfile&.respond_to?(:defined_in_file)
-
-      # Create a fake Pod::Lockfile that will work with PodPrebuild::Lockfile
-      FakeLockfile.new(resolved_versions, external_sources, defined_in_file)
-    end
-
-    # Minimal fake lockfile that provides the interface needed by PodPrebuild::Lockfile
-    class FakeLockfile
-      attr_reader :defined_in_file
-
-      def initialize(resolved_versions, external_sources = {}, defined_in_file = nil)
-        @resolved_versions = resolved_versions
-        @external_sources = external_sources
-        @defined_in_file = defined_in_file&.defined_in_file
-      end
-
-      def to_hash
-        # Build PODS array in the format expected by Lockfile.pod_from
-        # Format: ["PodName (version)"]
-        pods_array = @resolved_versions.map { |name, version| "#{name} (#{version})" }
-        {
-          'PODS' => pods_array,
-          'EXTERNAL SOURCES' => @external_sources
-        }
-      end
+      PodPrebuild::ResolvedLockfile.from_specs(
+        @original_installer.analysis_result.specifications,
+        installer_context.lockfile
+      )
     end
 
     def prebuild!
@@ -146,7 +120,21 @@ module PodPrebuild
 
       Pod::UI.title("Prebuilding...") do
         binary_installer.install!
+        publish_prebuilt_artifacts
       end
+    end
+
+    def publish_prebuilt_artifacts
+      publisher = PodPrebuild::CurrentArtifactPublisher.new(
+        config: PodPrebuild.config,
+        prebuild_sandbox: prebuild_sandbox,
+        artifacts_by_name: PodPrebuild.state.artifacts,
+        lockfile: create_resolved_lockfile,
+        sandbox: @original_installer.sandbox,
+        build_settings_provider: PodPrebuild.config.validate_prebuilt_settings
+      )
+      published_count = publisher.publish
+      Pod::UI.puts "Published #{published_count} artifact(s) for integration".green
     end
 
     def prepare_for_integration

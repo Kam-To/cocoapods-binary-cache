@@ -3,6 +3,8 @@ module Pod
     class PrebuiltSourceInstaller < PodSourceInstaller
       def initialize(*args, **kwargs)
         @source_installer = kwargs.delete(:source_installer)
+        @artifact_reader = kwargs.delete(:artifact_reader)
+        @target_names = kwargs.delete(:target_names) || []
         super(*args, **kwargs)
       end
 
@@ -18,18 +20,18 @@ module Pod
       private
 
       def install_prebuilt_framework!
-        # make a symlink to target folder
-        # TODO (bang): Unify to 1 sandbox to optimize and avoid inconsistency
-        # if spec used in multiple platforms, it may return multiple paths
-        target_names = prebuild_sandbox.existed_target_names_for_pod_name(name)
-        target_names.each do |name|
-          real_file_folder = prebuild_sandbox.framework_folder_path_for_target_name(name)
+        real_file_folder = @artifact_reader&.artifact_dir
+        metadata = @artifact_reader&.metadata
+        raise Informative, "Missing cached artifact for #{name}" unless real_file_folder&.exist? && metadata
 
+        target_names = @target_names.empty? ? [name] : @target_names
+
+        target_names.each do |name|
           # If have only one platform, just place int the root folder of this pod.
           # If have multiple paths, we use a sperated folder to store different
           # platform frameworks. e.g. AFNetworking/AFNetworking-iOS/AFNetworking.framework
           target_folder = sandbox.pod_dir(self.name)
-          target_folder += real_file_folder.basename if target_names.count > 1
+          target_folder += name if target_names.count > 1
           target_folder += PodPrebuild.config.prebuilt_path
           target_folder.rmtree if target_folder.exist?
           target_folder.mkpath
@@ -54,7 +56,6 @@ module Pod
           end
 
           # symbol link copy resource for static framework
-          metadata = PodPrebuild::Metadata.in_dir(real_file_folder)
           next unless metadata.static_framework?
 
           metadata.resources.each do |path|

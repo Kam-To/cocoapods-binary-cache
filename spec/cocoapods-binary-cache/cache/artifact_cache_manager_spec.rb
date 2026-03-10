@@ -64,4 +64,48 @@ RSpec.describe PodPrebuild::ArtifactCacheManager do
       expect(JSON.parse(File.read(metadata_path))).to include("artifact_id" => artifact.artifact_id)
     end
   end
+
+  it "publishes support files from the staging directory into the artifact directory" do
+    Dir.mktmpdir do |dir|
+      cache_root = File.join(dir, "cache")
+      prebuild_root = File.join(dir, "prebuild")
+      config = FakeConfig.new(cache_root, prebuild_root)
+      manager = described_class.new(config)
+      artifact = FakeArtifact.new(:artifact_id => "SamplePod-1.0.0-res123")
+      pod_dir = File.join(prebuild_root, "current", "SamplePod")
+      framework_path = File.join(pod_dir, "SamplePod.xcframework")
+      bundle_path = File.join(pod_dir, "SamplePodResources.bundle")
+      marker_path = File.join(pod_dir, "SamplePod.pod_name")
+
+      FileUtils.mkdir_p(framework_path)
+      FileUtils.mkdir_p(bundle_path)
+      File.write(marker_path, "")
+
+      manager.publish_artifact(artifact, framework_path)
+
+      artifact_root = artifact_dir(cache_root, artifact)
+      expect(File.directory?(File.join(artifact_root, "SamplePod.xcframework"))).to be(true)
+      expect(File.directory?(File.join(artifact_root, "SamplePodResources.bundle"))).to be(true)
+      expect(File.exist?(File.join(artifact_root, "SamplePod.pod_name"))).to be(false)
+      expect(File.exist?(File.join(artifact_root, "metadata.json"))).to be(true)
+    end
+  end
+
+  it "does not recreate the prebuild current directory for local hits" do
+    Dir.mktmpdir do |dir|
+      cache_root = File.join(dir, "cache")
+      prebuild_root = File.join(dir, "prebuild")
+      config = FakeConfig.new(cache_root, prebuild_root)
+      manager = described_class.new(config)
+      artifact = FakeArtifact.new(:artifact_id => "SamplePod-1.0.0-hit123")
+      artifact_root = artifact_dir(cache_root, artifact)
+      framework_path = File.join(artifact_root, "SamplePod.xcframework")
+
+      FileUtils.mkdir_p(framework_path)
+      File.write(File.join(artifact_root, "metadata.json"), JSON.pretty_generate("artifact_id" => artifact.artifact_id))
+
+      expect(manager.fetch_artifact(artifact)).to eq(:local_hit)
+      expect(File.exist?(File.join(prebuild_root, "current"))).to be(false)
+    end
+  end
 end

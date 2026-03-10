@@ -26,6 +26,9 @@ module Pod
     end
 
     def create_prebuilt_source_installer(name)
+      artifact_reader = artifact_reader_for(name)
+      raise Informative, "Missing cached artifact for #{name}" unless artifact_reader
+
       # A source installer needs to install with the original spec (instead of the altered spec).
       # Otherwise, the cache will be corrupted because CocoaPods packs necessary dirs/files from temp dir
       # to the cache dir based on the spec.
@@ -34,7 +37,9 @@ module Pod
         sandbox,
         podfile,
         specs_for_pod(name),
-        source_installer: source_installer
+        source_installer: source_installer,
+        artifact_reader: artifact_reader,
+        target_names: targets_for_pod_name(name).map(&:name).uniq
       )
       pod_installers << pod_installer
       pod_installer

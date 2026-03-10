@@ -1,8 +1,6 @@
 module Pod
   class Installer
     def alter_specs_for_prebuilt_pods
-      cache = []
-
       @original_specs = analysis_result.specifications
         .map { |spec| [spec.name, Pod::Specification.from_file(spec.defined_in_file)] }
         .to_h
@@ -19,7 +17,7 @@ module Pod
               :license => true,
               :vendored_framework => spec == first_subspec_or_self
             }
-            alter_spec(spec, alterations, cache)
+            alter_spec(spec, alterations)
           end
         end
     end
@@ -31,15 +29,17 @@ module Pod
       metadata = @metadata_by_target[name]
       return metadata unless metadata.nil?
 
-      framework_path = sandbox.prebuild_sandbox.framework_folder_path_for_target_name(name)
-      metadata = PodPrebuild::Metadata.in_dir(framework_path)
+      reader = artifact_reader_for(name)
+      raise Informative, "Missing cached artifact metadata for #{name}" unless reader
+
+      metadata = reader.metadata
       @metadata_by_target[name] = metadata
       metadata
     end
 
-    def alter_spec(spec, alterations, cache)
+    def alter_spec(spec, alterations)
       metadata = metadata_of_target(spec.root.name)
-      targets = Pod.fast_get_targets_for_pod_name(spec.root.name, pod_targets, cache)
+      targets = targets_for_pod_name(spec.root.name)
       platforms = targets.map { |target| target.platform.name.to_s }.uniq
 
       if alterations[:vendored_framework]
